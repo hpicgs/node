@@ -27,8 +27,7 @@ addons:
       - g++-4.9
 
 before_install:
-  - CC=gcc-4.9 
-  - CXX=g++-4.9
+  - if [ $TRAVIS_OS_NAME == linux ]; then CC=gcc-4.9 && CXX=g++-4.98; fi
 
 before_script:
   - ./configure --shared
