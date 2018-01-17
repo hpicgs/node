@@ -4992,6 +4992,11 @@ int Start(int argc, char** argv) {
 
 namespace lib {
 
+struct CmdArgs {
+  int argc;
+  char** argv;
+};
+
 ArrayBufferAllocator* allocator;
 Isolate::CreateParams params;
 Locker* locker;
@@ -5003,14 +5008,9 @@ Local<Context> context;
 Context::Scope* context_scope;
 Environment::AsyncCallbackScope* callback_scope;
 bool request_stop = false;
-initialize::CmdArgs* cmd_args = nullptr;
+CmdArgs* cmd_args = nullptr;
 
 namespace initialize {
-
-struct CmdArgs {
-  int argc;
-  char** argv;
-};
 
 void deleteCmdArgs() {
   if (!cmd_args) {
@@ -5194,7 +5194,7 @@ void _StartEnv(int argc,
 int _StopEnv() {
   env->set_trace_sync_io(false);
 
-  const int exit_code = EmitExit(env);
+  int exit_code = EmitExit(env);
   RunAtExit(env);
   uv_key_delete(&thread_local_env);
 
@@ -5227,7 +5227,7 @@ void deinitV8() {
   v8_platform.Dispose();
 }
 
-void Deinitialize() {  
+int Deinitialize() {  
   auto exit_code = _StopEnv();
 
 #if defined(LEAK_SANITIZER)

@@ -42,7 +42,7 @@ namespace node { namespace lib {
     Stops the existing Node.js engine. Eventloop should not be running at this point.
     *Important*: Once this was called, Initialize() will have to be called again for Node.js' library functions to be available again.
     */
-    NODE_EXTERN void Deinitialize();
+    NODE_EXTERN int Deinitialize();
 
     /*
     Executes a given JavaScript file and returns once the execution has finished.
