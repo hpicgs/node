@@ -5010,7 +5010,7 @@ Environment::AsyncCallbackScope* callback_scope;
 bool request_stop = false;
 CmdArgs* cmd_args = nullptr;
 
-namespace initialize {
+namespace deinitialize {
 
 void deleteCmdArgs() {
   if (!cmd_args) {
@@ -5020,8 +5020,49 @@ void deleteCmdArgs() {
   delete cmd_args;
 }
 
+int _StopEnv() {
+  env->set_trace_sync_io(false);
+
+  int exit_code = EmitExit(env);
+  RunAtExit(env);
+  uv_key_delete(&thread_local_env);
+
+  v8_platform.DrainVMTasks();
+  WaitForInspectorDisconnect(env);
+
+  return exit_code;
+}
+
+void deleteIsolate() {
+  Mutex::ScopedLock scoped_lock(node_isolate_mutex);
+  CHECK_EQ(node_isolate, isolate);
+  node_isolate = nullptr;
+  isolate->Dispose();
+}
+
+void deinitV8() {
+  if (trace_enabled) {
+    v8_platform.StopTracingAgent();
+  }
+  v8_initialized = false;
+  V8::Dispose();
+
+  // uv_run cannot be called from the time before the beforeExit callback
+  // runs until the program exits unless the event loop has any referenced
+  // handles after beforeExit terminates. This prevents unrefed timers
+  // that happen to terminate during shutdown from being run unsafely.
+  // Since uv_run cannot be called, uv_async handles held by the platform
+  // will never be fully cleaned up.
+  v8_platform.Dispose();
+}
+
+} // namespace deinitialize
+
+
+namespace initialize {
+
 void generateCmdArgsFromProgramName(const std::string& program_name) {
-  deleteCmdArgs();
+  deinitialize::deleteCmdArgs();
   int argc = 1;
   char* program_name_c_string = new char[program_name.length() + 1];
   std::strcpy(program_name_c_string, program_name.c_str());
@@ -5108,49 +5149,6 @@ void configureOpenSsl() {
 #endif  // HAVE_OPENSSL
 }
 
-}  // namespace initialize
-
-void Initialize(const std::string& program_name) {
-  //////////
-  // Start 1
-  //////////
-  atexit([] () { uv_tty_reset_mode(); });
-  PlatformInit();
-  node::performance::performance_node_start = PERFORMANCE_NOW();
-
-  // currently we do not support additional commandline options for node, uv, or v8
-  // we explicitily only set the first argument to the program name
-  initialize::generateCmdArgsFromProgramName(program_name);
-
-  // Hack around with the argv pointer. Used for process.title = "blah".
-  cmd_args->argv = uv_setup_args(cmd_args->argc, cmd_args->argv);
-
-  // This needs to run *before* V8::Initialize().  The const_cast is not
-  // optional, in case you're wondering.
-  // Init() puts the v8 specific cmd args in exec_argc and exec_argv, but as we
-  // don't support these, they are not used.
-  int exec_argc = 0;
-  const char** exec_argv = nullptr;
-  Init(&cmd_args->argc, const_cast<const char**>(cmd_args->argv), &exec_argc, &exec_argv);
-
-  initialize::configureOpenSsl();
-
-  initialize::initV8();
-
-  //////////
-  // Start 2
-  //////////
-
-  initialize::createIsolate();
-
-  initialize::createInitialEnvironment();
-
-  //////////
-  // Start environment
-  //////////
-  _StartEnv(cmd_args->argc, (const char* const*)cmd_args->argv);
-}
-
 void _StartEnv(int argc,
                const char* const* argv) {
     std::cout << "Starting environment" << std::endl;
@@ -5191,54 +5189,63 @@ void _StartEnv(int argc,
     env->set_trace_sync_io(trace_sync_io);
 }
 
-int _StopEnv() {
-  env->set_trace_sync_io(false);
+}  // namespace initialize
 
-  int exit_code = EmitExit(env);
-  RunAtExit(env);
-  uv_key_delete(&thread_local_env);
+void Initialize(const std::string& program_name) {
+  //////////
+  // Start 1
+  //////////
+  atexit([] () { uv_tty_reset_mode(); });
+  PlatformInit();
+  node::performance::performance_node_start = PERFORMANCE_NOW();
 
-  v8_platform.DrainVMTasks();
-  WaitForInspectorDisconnect(env);
+  // currently we do not support additional commandline options for node, uv, or v8
+  // we explicitily only set the first argument to the program name
+  initialize::generateCmdArgsFromProgramName(program_name);
 
-  return exit_code;
-}
+  // Hack around with the argv pointer. Used for process.title = "blah".
+  cmd_args->argv = uv_setup_args(cmd_args->argc, cmd_args->argv);
 
-void deleteIsolate() {
-  Mutex::ScopedLock scoped_lock(node_isolate_mutex);
-  CHECK_EQ(node_isolate, isolate);
-  node_isolate = nullptr;
-  isolate->Dispose();
-}
+  // This needs to run *before* V8::Initialize().  The const_cast is not
+  // optional, in case you're wondering.
+  // Init() puts the v8 specific cmd args in exec_argc and exec_argv, but as we
+  // don't support these, they are not used.
+  int exec_argc = 0;
+  const char** exec_argv = nullptr;
+  Init(&cmd_args->argc, const_cast<const char**>(cmd_args->argv), &exec_argc, &exec_argv);
 
-void deinitV8() {
-  if (trace_enabled) {
-    v8_platform.StopTracingAgent();
-  }
-  v8_initialized = false;
-  V8::Dispose();
+  initialize::configureOpenSsl();
 
-  // uv_run cannot be called from the time before the beforeExit callback
-  // runs until the program exits unless the event loop has any referenced
-  // handles after beforeExit terminates. This prevents unrefed timers
-  // that happen to terminate during shutdown from being run unsafely.
-  // Since uv_run cannot be called, uv_async handles held by the platform
-  // will never be fully cleaned up.
-  v8_platform.Dispose();
+  initialize::initV8();
+
+  //////////
+  // Start 2
+  //////////
+
+  initialize::createIsolate();
+
+  initialize::createInitialEnvironment();
+
+  //////////
+  // Start environment
+  //////////
+
+
+  initialize::_StartEnv(cmd_args->argc, (const char* const*)cmd_args->argv);
 }
 
 int Deinitialize() {  
-  auto exit_code = _StopEnv();
+  auto exit_code = deinitialize::_StopEnv();
 
 #if defined(LEAK_SANITIZER)
   __lsan_do_leak_check();
 #endif
 
-  deleteIsolate();
+  deinitialize::deleteIsolate();
 
-  deinitV8();
+  deinitialize::deinitV8();
    
-  initialize::deleteCmdArgs();
+  deinitialize::deleteCmdArgs();
 
   return exit_code;
 }

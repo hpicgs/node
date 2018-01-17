@@ -8,12 +8,12 @@
 #include "node.h"
 
 namespace node { namespace lib {
-    void _StartEnv(int argc, const char* const* argv);
 
-    int _StopEnv();
+    namespace { // private variables
+        bool _event_loop_running = false;
+    }
 
-    bool _event_loop_running = false;
-
+    bool EventLoopIsRunning() { return _event_loop_running; }
 
     /*********************************************************
      * Function types
