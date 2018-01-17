@@ -5002,6 +5002,8 @@ Environment* env;
 Local<Context> context;
 Context::Scope* context_scope;
 Environment::AsyncCallbackScope* callback_scope;
+bool request_stop = false;
+initialize::CmdArgs* cmd_args = nullptr;
 
 namespace initialize {
 
@@ -5010,12 +5012,21 @@ struct CmdArgs {
   char** argv;
 };
 
-CmdArgs generateCmdArgsFromProgramName(const std::string& program_name) {
+void deleteCmdArgs() {
+  if (!cmd_args) {
+    return;
+  }
+  delete[] cmd_args->argv;
+  delete cmd_args;
+}
+
+void generateCmdArgsFromProgramName(const std::string& program_name) {
+  deleteCmdArgs();
   int argc = 1;
   char* program_name_c_string = new char[program_name.length() + 1];
   std::strcpy(program_name_c_string, program_name.c_str());
   char** argv = new char*(program_name_c_string);
-  return CmdArgs{argc, argv};
+  cmd_args = new CmdArgs{argc, argv};
 }
 
 void initV8() {
@@ -5109,10 +5120,10 @@ void Initialize(const std::string& program_name) {
 
   // currently we do not support additional commandline options for node, uv, or v8
   // we explicitily only set the first argument to the program name
-  initialize::CmdArgs cmd_args = initialize::generateCmdArgsFromProgramName(program_name);
+  initialize::generateCmdArgsFromProgramName(program_name);
 
   // Hack around with the argv pointer. Used for process.title = "blah".
-  cmd_args.argv = uv_setup_args(cmd_args.argc, cmd_args.argv);
+  cmd_args->argv = uv_setup_args(cmd_args->argc, cmd_args->argv);
 
   // This needs to run *before* V8::Initialize().  The const_cast is not
   // optional, in case you're wondering.
@@ -5120,7 +5131,7 @@ void Initialize(const std::string& program_name) {
   // don't support these, they are not used.
   int exec_argc = 0;
   const char** exec_argv = nullptr;
-  Init(&cmd_args.argc, const_cast<const char**>(cmd_args.argv), &exec_argc, &exec_argv);
+  Init(&cmd_args->argc, const_cast<const char**>(cmd_args->argv), &exec_argc, &exec_argv);
 
   initialize::configureOpenSsl();
 
@@ -5137,7 +5148,7 @@ void Initialize(const std::string& program_name) {
   //////////
   // Start environment
   //////////
-  _StartEnv(cmd_args.argc, (const char* const*)cmd_args.argv);
+  _StartEnv(cmd_args->argc, (const char* const*)cmd_args->argv);
 }
 
 void _StartEnv(int argc,
@@ -5180,6 +5191,58 @@ void _StartEnv(int argc,
     env->set_trace_sync_io(trace_sync_io);
 }
 
+int _StopEnv() {
+  env->set_trace_sync_io(false);
+
+  const int exit_code = EmitExit(env);
+  RunAtExit(env);
+  uv_key_delete(&thread_local_env);
+
+  v8_platform.DrainVMTasks();
+  WaitForInspectorDisconnect(env);
+
+  return exit_code;
+}
+
+void deleteIsolate() {
+  Mutex::ScopedLock scoped_lock(node_isolate_mutex);
+  CHECK_EQ(node_isolate, isolate);
+  node_isolate = nullptr;
+  isolate->Dispose();
+}
+
+void deinitV8() {
+  if (trace_enabled) {
+    v8_platform.StopTracingAgent();
+  }
+  v8_initialized = false;
+  V8::Dispose();
+
+  // uv_run cannot be called from the time before the beforeExit callback
+  // runs until the program exits unless the event loop has any referenced
+  // handles after beforeExit terminates. This prevents unrefed timers
+  // that happen to terminate during shutdown from being run unsafely.
+  // Since uv_run cannot be called, uv_async handles held by the platform
+  // will never be fully cleaned up.
+  v8_platform.Dispose();
+}
+
+void Deinitialize() {  
+  auto exit_code = _StopEnv();
+
+#if defined(LEAK_SANITIZER)
+  __lsan_do_leak_check();
+#endif
+
+  deleteIsolate();
+
+  deinitV8();
+   
+  initialize::deleteCmdArgs();
+
+  return exit_code;
+}
+
 v8::Local<v8::Value> Run(const std::string& path) {
   // Read entire file into string. There is most certainly a better way ;)
   // https://stackoverflow.com/a/2602258/2560557
@@ -5214,12 +5277,19 @@ v8::Local<v8::Value> Evaluate(const std::string& java_script_code) {
   return scope.Escape(result);
 }
 
-void RunEventLoop(const RunUserLoop& callback){
+void RunEventLoop(const RunUserLoop& callback) {
+  if (_event_loop_running) {
+    return; // TODO: return error
+  }
   bool more = false;
+  _event_loop_running = true;
+  request_stop = false;
   do {
     more = ProcessEvents();
     callback();
-  } while (more);
+  } while (more && !request_stop);
+  request_stop = false;
+  _event_loop_running = false;
 }
 
 v8::Local<v8::Object> GetRootObject() {
@@ -5298,14 +5368,12 @@ void _RegisterModuleCallback(v8::Local<v8::Object> exports,
     delete module_functions;
 }
 
-
 void StopEventLoop() {
-  RequestStopEventLoop();
-  while (ProcessEvents()) { }
-}
-
-void RequestStopEventLoop() {
-  Evaluate("process.exit()");
+  if (!_event_loop_running) {
+    return;
+  }
+  request_stop = true;
+  while (request_stop && _event_loop_running) { }
 }
 
 bool ProcessEvents() {

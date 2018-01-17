@@ -12,6 +12,8 @@ namespace node { namespace lib {
 
     int _StopEnv();
 
+    bool _event_loop_running = false;
+
 
     /*********************************************************
      * Function types
@@ -43,17 +45,9 @@ namespace node { namespace lib {
     NODE_EXTERN void Deinitialize();
 
     /*
-    Starts the Node.js engine with a given JavaScript file. Additionally, the Node.js engine will be kept alive
-    calling the `callback` periodically.
-    *Important*: This method will not return until the Node.js is stopped (e.g. by calling `terminate`).
-    */
-    //bool StartMainLoop(const std::string & path, const RunUserLoop & callback);
-
-    /*
     Executes a given JavaScript file and returns once the execution has finished.
     *Important*: Node.js has to have been initialized by calling Initialize().
     */
-
     NODE_EXTERN v8::Local<v8::Value> Run(const std::string & path);
 
     /*********************************************************
@@ -78,15 +72,9 @@ namespace node { namespace lib {
      *********************************************************/
 
     /*
-    Sends termination event into event queue and runs event queue, until all events have been handled.
+    Stops the Node.js event loop. Execution can be resumed by calling RunEventLoop() again.
     */
     NODE_EXTERN void StopEventLoop();
-
-
-    /*
-    Stops the *running* Node.js engine. Clears all events and puts Node.js into idle.
-    */
-    NODE_EXTERN void RequestStopEventLoop();
 
     /*********************************************************
      * Basic operations
