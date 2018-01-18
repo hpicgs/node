@@ -5380,7 +5380,7 @@ void StopEventLoop() {
     return;
   }
   request_stop = true;
-  while (request_stop && _event_loop_running) { }
+  //while (request_stop && _event_loop_running) { }
 }
 
 bool ProcessEvents() {

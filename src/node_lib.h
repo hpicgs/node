@@ -72,7 +72,7 @@ namespace node { namespace lib {
      *********************************************************/
 
     /*
-    Stops the Node.js event loop. Execution can be resumed by calling RunEventLoop() again.
+    Stops the Node.js event loop after its current execution. Execution can be resumed by calling RunEventLoop() again.
     */
     NODE_EXTERN void StopEventLoop();
 
