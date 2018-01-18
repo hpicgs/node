@@ -5231,7 +5231,6 @@ void Initialize(const std::string& program_name) {
   // Start environment
   //////////
 
-
   initialize::_StartEnv(cmd_args->argc, (const char* const*)cmd_args->argv);
 }
 
@@ -5321,6 +5320,7 @@ v8::Local<v8::Value> Call(v8::Local<v8::Object> object, const std::string& funct
   Local<v8::Value> value = object->Get(v8_function_name);
   if (!value->IsFunction()) {
     //throw new Exception(":((");
+    // TODO (js): at least return at this point
   }
 
   return Call(object, v8::Local<v8::Function>::Cast(value), args);
@@ -5337,6 +5337,7 @@ v8::Local<v8::Object> IncludeModule(const std::string& module_name) {
   auto module = Call(GetRootObject(), "require", args);
   if (module->IsUndefined()) {
     //TODO jh: throw new Exception(":(("); // repuire() call failed, but did not throw a JS exception.
+    // TODO (js): at least return at this point
   }
 
   return v8::Local<v8::Object>::Cast(module);
