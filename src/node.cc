@@ -5288,7 +5288,7 @@ v8::Local<v8::Value> Evaluate(const std::string& java_script_code) {
   return scope.Escape(result);
 }
 
-void RunEventLoop(const RunUserLoop& callback) {
+void RunEventLoop(const std::function<void()>& callback) {
   if (_event_loop_running) {
     return; // TODO: return error
   }

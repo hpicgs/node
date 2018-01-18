@@ -19,8 +19,6 @@ namespace node { namespace lib {
      * Function types
      *********************************************************/
 
-    using RunUserLoop = std::function<void()>;
-
     void _RegisterModuleCallback(v8::Local<v8::Object> exports,
               v8::Local<v8::Value> module,
               v8::Local<v8::Context> context,
@@ -62,9 +60,9 @@ namespace node { namespace lib {
     /*
     Starts the execution of the Node.js event loop, which processes any events in JavaScript.
     Additionally, the given callback will be executed once per main loop run.
-    *Important*: Call `initialize()` before using this method.
+    *Important*: Call `Initialize()` before using this method.
     */
-    NODE_EXTERN void RunEventLoop(const RunUserLoop & callback);
+    NODE_EXTERN void RunEventLoop(const std::function<void()> & callback);
 
 
     /*********************************************************
