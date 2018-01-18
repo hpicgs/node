@@ -5234,7 +5234,11 @@ void Initialize(const std::string& program_name) {
   initialize::_StartEnv(cmd_args->argc, (const char* const*)cmd_args->argv);
 }
 
-int Deinitialize() {  
+int Deinitialize() {
+  // Empty event queue
+  Evaluate("process.exit();");
+  while (ProcessEvents()) { }
+
   auto exit_code = deinitialize::_StopEnv();
 
 #if defined(LEAK_SANITIZER)
