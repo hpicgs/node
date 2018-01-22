@@ -4993,8 +4993,11 @@ int Start(int argc, char** argv) {
 namespace lib {
 
 struct CmdArgs {
-  int argc;
-  char** argv;
+  CmdArgs() = default;
+  int argc = 0;
+  char** argv = nullptr;
+  std::string argument_data = "";
+  std::vector<char*> argument_pointer = {};
 };
 
 ArrayBufferAllocator* allocator;
@@ -5060,13 +5063,26 @@ void deinitV8() {
 
 namespace initialize {
 
-void generateCmdArgsFromProgramName(const std::string& program_name) {
+/**
+ * @brief setCmdArgs builds a continuous adjacent char buffer (argv) from a vector of strings
+ * and stores it in the static cmd_args variable
+ * @param program_name the name of the executable
+ * @param arguments the arguments for the program
+ */
+void setCmdArgs(const std::string& program_name, const std::vector<std::string>& arguments) {
   deinitialize::deleteCmdArgs();
-  int argc = 1;
-  char* program_name_c_string = new char[program_name.length() + 1];
-  std::strcpy(program_name_c_string, program_name.c_str());
-  char** argv = new char*(program_name_c_string);
-  cmd_args = new CmdArgs{argc, argv};
+  cmd_args = new CmdArgs();
+
+  cmd_args->argument_pointer.push_back(const_cast<char*>(cmd_args->argument_data.data() + cmd_args->argument_data.size()));
+  cmd_args->argument_data += program_name;
+  cmd_args->argument_data += char(0x0);
+  for (const auto& s: arguments) {
+    cmd_args->argument_pointer.push_back(const_cast<char*>(cmd_args->argument_data.data() + cmd_args->argument_data.size()));
+    cmd_args->argument_data += s;
+    cmd_args->argument_data += char(0x0);
+  }
+  cmd_args->argc = cmd_args->argument_pointer.size();
+  cmd_args->argv = cmd_args->argument_pointer.data();
 }
 
 void initV8() {
@@ -5182,7 +5198,7 @@ void _StartEnv(int argc,
 
 }  // namespace initialize
 
-void Initialize(const std::string& program_name) {
+void Initialize(const std::string& program_name, const std::vector<std::string>& node_args) {
   //////////
   // Start 1
   //////////
@@ -5190,12 +5206,10 @@ void Initialize(const std::string& program_name) {
   PlatformInit();
   node::performance::performance_node_start = PERFORMANCE_NOW();
 
-  // currently we do not support additional commandline options for node, uv, or v8
-  // we explicitily only set the first argument to the program name
-  initialize::generateCmdArgsFromProgramName(program_name);
+  initialize::setCmdArgs(program_name, node_args);
 
-  // Hack around with the argv pointer. Used for process.title = "blah".
-  cmd_args->argv = uv_setup_args(cmd_args->argc, cmd_args->argv);
+  // Hack around with the argv pointer. Used for process.title = "blah --args".
+  uv_setup_args(cmd_args->argc, cmd_args->argv);
 
   // This needs to run *before* V8::Initialize().  The const_cast is not
   // optional, in case you're wondering.
