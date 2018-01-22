@@ -5337,7 +5337,7 @@ v8::Local<v8::Object> IncludeModule(const std::string& module_name) {
   return v8::Local<v8::Object>::Cast(module);
 }
 
-void RegisterModule(const std::string & name, const addon_context_register_func & callback, void *priv, const bool auto_bind) {
+void RegisterModule(const std::string & name, const addon_context_register_func & callback, void *priv, const std::string & target) {
   node::node_module* module = new node::node_module();
 
   module->nm_version = NODE_MODULE_VERSION;
@@ -5349,16 +5349,16 @@ void RegisterModule(const std::string & name, const addon_context_register_func 
 
   node_module_register(module);
 
-  if(auto_bind) {
-    Evaluate(name + " = process.binding('" + name + "')");
+  if(target != "") {
+    Evaluate(std::string("const ") + target + " = process.binding('" + name + "')");
   }
 }
 
 void RegisterModule(const std::string & name,
                     const std::map<std::string, v8::FunctionCallback> & module_functions,
-                    const bool auto_bind) {
+                    const std::string & target) {
     auto map_on_heap = new const std::map<std::string, v8::FunctionCallback>(module_functions);
-    RegisterModule(name, node::lib::_RegisterModuleCallback, const_cast<std::map<std::string, v8::FunctionCallback>*>(map_on_heap), auto_bind);
+    RegisterModule(name, node::lib::_RegisterModuleCallback, const_cast<std::map<std::string, v8::FunctionCallback>*>(map_on_heap), target);
 }
 
 void _RegisterModuleCallback(v8::Local<v8::Object> exports,
