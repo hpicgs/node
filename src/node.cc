@@ -5350,7 +5350,7 @@ void RegisterModule(const std::string & name, const addon_context_register_func 
   node_module_register(module);
 
   if(auto_bind) {
-    Evaluate(name + " = process.binding(" + name + ")");
+    Evaluate(name + " = process.binding('" + name + "')");
   }
 }
 
