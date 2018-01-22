@@ -5361,6 +5361,18 @@ v8::MaybeLocal<v8::Object> IncludeModule(const std::string& module_name) {
   return MaybeLocal<v8::Object>(Local<v8::Object>::Cast(module));
 }
 
+v8::MaybeLocal<v8::Value> GetValue(v8::Local<v8::Object> object, const std::string& value_name) {
+  MaybeLocal<v8::String> maybe_key = v8::String::NewFromUtf8(isolate, value_name.c_str());
+  Local<v8::String> key;
+
+  if (!maybe_key.ToLocal(&key)) {
+    // cannot create v8::String
+    return MaybeLocal<v8::Value>();
+  }
+
+  return object->Get(context, key);
+}
+
 void RegisterModule(const std::string & name, const addon_context_register_func & callback, void *priv) {
     node::node_module* module = new node::node_module();
 
