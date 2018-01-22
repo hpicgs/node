@@ -4993,11 +4993,40 @@ int Start(int argc, char** argv) {
 namespace lib {
 
 struct CmdArgs {
-  CmdArgs() = default;
-  int argc = 0;
-  char** argv = nullptr;
-  std::string argument_data = "";
-  std::vector<char*> argument_pointer = {};
+  /**
+   * @brief CmdArgs builds a continuous adjacent char buffer (argv) from a vector of strings
+   * and stores it in the static cmd_args variable
+   * @param program_name the name of the executable
+   * @param arguments the arguments for the program
+   */
+  CmdArgs(const std::string& program_name, const std::vector<std::string>& arguments)
+    : argc(0)
+    , argv(nullptr)
+  {
+    size_t total_size = 0;
+    total_size += program_name.size() + 1;
+    for (const auto& argument: arguments) {
+      total_size += argument.size() + 1;
+    }
+
+    // FIXME: one cannot assume that the memory in a string is the same after push_back
+    argument_data.reserve(total_size);
+    argument_pointers.push_back(const_cast<char*>(argument_data.data() + argument_data.size()));
+    argument_data += program_name;
+    argument_data += char(0x0);
+    for (const auto& argument: arguments) {
+      argument_pointers.push_back(const_cast<char*>(argument_data.data() + argument_data.size()));
+      argument_data += argument;
+      argument_data += char(0x0);
+    }
+    argc = argument_pointers.size();
+    argv = argument_pointers.data();
+  }
+
+  int argc;
+  char** argv;
+  std::string argument_data;
+  std::vector<char*> argument_pointers;
 };
 
 ArrayBufferAllocator* allocator;
@@ -5018,8 +5047,8 @@ void deleteCmdArgs() {
   if (!cmd_args) {
     return;
   }
-  delete[] cmd_args->argv;
   delete cmd_args;
+  cmd_args = nullptr;
 }
 
 int _StopEnv() {
@@ -5062,28 +5091,6 @@ void deinitV8() {
 
 
 namespace initialize {
-
-/**
- * @brief setCmdArgs builds a continuous adjacent char buffer (argv) from a vector of strings
- * and stores it in the static cmd_args variable
- * @param program_name the name of the executable
- * @param arguments the arguments for the program
- */
-void setCmdArgs(const std::string& program_name, const std::vector<std::string>& arguments) {
-  deinitialize::deleteCmdArgs();
-  cmd_args = new CmdArgs();
-
-  cmd_args->argument_pointer.push_back(const_cast<char*>(cmd_args->argument_data.data() + cmd_args->argument_data.size()));
-  cmd_args->argument_data += program_name;
-  cmd_args->argument_data += char(0x0);
-  for (const auto& s: arguments) {
-    cmd_args->argument_pointer.push_back(const_cast<char*>(cmd_args->argument_data.data() + cmd_args->argument_data.size()));
-    cmd_args->argument_data += s;
-    cmd_args->argument_data += char(0x0);
-  }
-  cmd_args->argc = cmd_args->argument_pointer.size();
-  cmd_args->argv = cmd_args->argument_pointer.data();
-}
 
 void initV8() {
   v8_platform.Initialize(v8_thread_pool_size, uv_default_loop());
@@ -5206,7 +5213,7 @@ void Initialize(const std::string& program_name, const std::vector<std::string>&
   PlatformInit();
   node::performance::performance_node_start = PERFORMANCE_NOW();
 
-  initialize::setCmdArgs(program_name, node_args);
+  cmd_args = new CmdArgs(program_name, node_args);
 
   // Hack around with the argv pointer. Used for process.title = "blah --args".
   uv_setup_args(cmd_args->argc, cmd_args->argv);
