@@ -4992,12 +4992,20 @@ int Start(int argc, char** argv) {
 
 namespace lib {
 
+/**
+ * @brief The CmdArgs class is a container for argc and argv.
+ */
 class CmdArgs {
 
 public:
   /**
-   * @brief CmdArgs creates a contiguous, adjacent char buffer (argv) with the program name
-   * as its first item followed by the provided arguments
+   * @brief CmdArgs creates valid argc and argv variables from a program name and arguments.
+   *
+   * The argv buffer is a contiguous, adjacent char buffer and contains the program name
+   * as its first item followed by the provided arguments. argc is the number of
+   * arguments + 1 (the program name).
+   * The resulting argv buffer should not be modified.
+   *
    * @param program_name the name of the executable
    * @param arguments the arguments for the program
    */
@@ -5030,11 +5038,26 @@ public:
     argv = argument_pointers.data();
   }
 
+  ~CmdArgs() = default;
+
+  /**
+   * @brief argc is the number of arguments + 1 (the program name)
+   */
   int argc;
+  /**
+   * @brief argv is an array containing pointers to the arguments (and the program name),
+   * it should not be modified
+   */
   const char** argv;
 
 private:
+  /**
+   * @brief argument_data contains the program name and the arguments separated by null bytes
+   */
   std::string argument_data;
+  /**
+   * @brief argument_pointers contains pointers to the beginnings of the strings in argument_data
+   */
   std::vector<const char*> argument_pointers;
 };
 
