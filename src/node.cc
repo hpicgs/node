@@ -5269,8 +5269,7 @@ v8::MaybeLocal<v8::Value> Evaluate(const std::string& java_script_code) {
     return MaybeLocal<v8::Value>();
   }
 
-  MaybeLocal<Value> result = script.ToLocalChecked()->Run();
-  return result;
+  return MaybeLocal<v8::Value>(scope.Escape(script.ToLocalChecked()->Run()));
 }
 
 void RunEventLoop(const std::function<void()>& callback) {
