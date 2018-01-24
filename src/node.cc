@@ -5350,7 +5350,7 @@ void RegisterModule(const std::string & name, const addon_context_register_func 
   node_module_register(module);
 
   if(target != "") {
-    Evaluate(std::string("const ") + target + " = process.binding('" + name + "')");
+    Evaluate("const " + target + " = process.binding('" + name + "')");
   }
 }
 
