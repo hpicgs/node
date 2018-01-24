@@ -4992,10 +4992,12 @@ int Start(int argc, char** argv) {
 
 namespace lib {
 
-struct CmdArgs {
+class CmdArgs {
+
+public:
   /**
-   * @brief CmdArgs builds a continuous adjacent char buffer (argv) from a vector of strings
-   * and stores it in the static cmd_args variable
+   * @brief CmdArgs creates a contiguous, adjacent char buffer (argv) with the program name
+   * as its first item followed by the provided arguments
    * @param program_name the name of the executable
    * @param arguments the arguments for the program
    */
@@ -5030,6 +5032,8 @@ struct CmdArgs {
 
   int argc;
   const char** argv;
+
+private:
   std::string argument_data;
   std::vector<const char*> argument_pointers;
 };
