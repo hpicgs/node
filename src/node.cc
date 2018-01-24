@@ -5009,24 +5009,29 @@ struct CmdArgs {
       total_size += argument.size() + 1;
     }
 
-    // FIXME: one cannot assume that the memory in a string is the same after push_back
+    std::vector<std::size_t> offsets;
     argument_data.reserve(total_size);
-    argument_pointers.push_back(const_cast<char*>(argument_data.data() + argument_data.size()));
+    offsets.push_back(argument_data.size());
     argument_data += program_name;
     argument_data += char(0x0);
     for (const auto& argument: arguments) {
-      argument_pointers.push_back(const_cast<char*>(argument_data.data() + argument_data.size()));
+      offsets.push_back(argument_data.size());
       argument_data += argument;
       argument_data += char(0x0);
+    }
+
+    argument_pointers.resize(offsets.size());
+    for (std::size_t i=0; i<argument_pointers.size(); ++i) {
+      argument_pointers[i] = argument_data.data() + offsets[i];
     }
     argc = argument_pointers.size();
     argv = argument_pointers.data();
   }
 
   int argc;
-  char** argv;
+  const char** argv;
   std::string argument_data;
-  std::vector<char*> argument_pointers;
+  std::vector<const char*> argument_pointers;
 };
 
 ArrayBufferAllocator* allocator;
@@ -5216,7 +5221,8 @@ void Initialize(const std::string& program_name, const std::vector<std::string>&
   cmd_args = new CmdArgs(program_name, node_args);
 
   // Hack around with the argv pointer. Used for process.title = "blah --args".
-  uv_setup_args(cmd_args->argc, cmd_args->argv);
+  // argv won't be modified
+  uv_setup_args(cmd_args->argc, const_cast<char**>(cmd_args->argv));
 
   // This needs to run *before* V8::Initialize().  The const_cast is not
   // optional, in case you're wondering.
@@ -5224,7 +5230,7 @@ void Initialize(const std::string& program_name, const std::vector<std::string>&
   // don't support these, they are not used.
   int exec_argc = 0;
   const char** exec_argv = nullptr;
-  Init(&cmd_args->argc, const_cast<const char**>(cmd_args->argv), &exec_argc, &exec_argv);
+  Init(&cmd_args->argc, cmd_args->argv, &exec_argc, &exec_argv);
 
   initialize::configureOpenSsl();
 
