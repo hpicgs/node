@@ -5076,7 +5076,7 @@ bool _event_loop_running = false;
 v8::Isolate* _isolate = nullptr;
 Environment* _environment = nullptr;
 
-bool EventLoopIsRunning() {
+bool eventLoopIsRunning() {
   return _event_loop_running;
 }
 

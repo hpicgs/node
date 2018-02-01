@@ -34,7 +34,7 @@ namespace node { namespace lib {
      * @brief Indicates, whether the Node.js event loop is executed by `RunEventLoop`.
      * @return True, if the Node.js event loop is executed by `RunEventLoop`. False otherwise. 
      */
-    bool EventLoopIsRunning();
+    bool eventLoopIsRunning();
 
     /*********************************************************
      * Start Node.js engine
