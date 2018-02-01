@@ -4799,8 +4799,8 @@ Local<Context> NewContext(Isolate* isolate,
   return context;
 }
 
-inline static bool TickEventLoop(Environment & env) {
-  uv_run(env.event_loop(), UV_RUN_NOWAIT);
+inline static bool TickEventLoop(Environment & env, uv_run_mode uv_loop_behavior) {
+  uv_run(env.event_loop(), uv_loop_behavior);
 
   if (uv_loop_alive(env.event_loop())) {
     return true;
@@ -4857,7 +4857,7 @@ inline int Start(Isolate* isolate, IsolateData* isolate_data,
     bool more;
     PERFORMANCE_MARK(&env, LOOP_START);
     do {
-      more = TickEventLoop(env);
+      more = TickEventLoop(env, UV_RUN_DEFAULT);
     } while (more == true);
     PERFORMANCE_MARK(&env, LOOP_EXIT);
   }
@@ -5359,7 +5359,7 @@ v8::MaybeLocal<v8::Value> Evaluate(const std::string& java_script_code) {
   return MaybeLocal<v8::Value>(scope.Escape(script.ToLocalChecked()->Run()));
 }
 
-void RunEventLoop(const std::function<void()>& callback) {
+void RunEventLoop(const std::function<void()>& callback, uv_run_mode uv_loop_behavior) {
   if (_event_loop_running) {
     return; // TODO: return error
   }
@@ -5368,7 +5368,7 @@ void RunEventLoop(const std::function<void()>& callback) {
   _event_loop_running = true;
   request_stop = false;
   do {
-    more = ProcessEvents();
+    more = ProcessEvents(uv_loop_behavior);
     callback();
   } while (more && !request_stop);
   request_stop = false;
@@ -5490,8 +5490,8 @@ void StopEventLoop() {
   request_stop = true;
 }
 
-bool ProcessEvents() {
-  return TickEventLoop(*_environment);
+bool ProcessEvents(uv_run_mode uv_loop_behavior) {
+  return TickEventLoop(*_environment, uv_loop_behavior);
 }
 
 }  // namespace node::lib

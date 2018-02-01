@@ -83,9 +83,10 @@ namespace node { namespace lib {
      * 
      * Processes all currently pending events in the Node.js event loop.
      * This method returns immediately if there are no pending events.
+     * @param uv_loop_behavior The uv event loop behavior.
      * @return True, if more events need to be processed. False otherwise.
      */
-    NODE_EXTERN bool ProcessEvents();
+    NODE_EXTERN bool ProcessEvents(uv_run_mode uv_loop_behavior = UV_RUN_NOWAIT);
 
     /**
      * @brief Starts the execution of the Node.js event loop. Calling the given callback once per loop tick.
@@ -93,9 +94,10 @@ namespace node { namespace lib {
      * Executes the Node.js event loop as long as events keep coming.
      * Once per loop execution, after events were processed, the given callback is executed.
      * The event loop can be paused by calling `StopEventLoop`.
+     * @param uv_loop_behavior The uv event loop behavior.
      * @param callback The callback, which should be executed periodically while the calling thread is blocked.
      */
-    NODE_EXTERN void RunEventLoop(const std::function<void()> & callback);
+    NODE_EXTERN void RunEventLoop(const std::function<void()> & callback, uv_run_mode uv_loop_behavior = UV_RUN_NOWAIT);
 
 
     /*********************************************************
