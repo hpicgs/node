@@ -4799,7 +4799,8 @@ Local<Context> NewContext(Isolate* isolate,
   return context;
 }
 
-inline static bool TickEventLoop(Environment& env, node::lib::UvLoopBehavior behavior) {
+inline static bool TickEventLoop(Environment& env,
+                                 node::lib::UvLoopBehavior behavior) {
   uv_run(env.event_loop(), static_cast<uv_run_mode>(behavior));
 
   if (uv_loop_alive(env.event_loop())) {
@@ -5378,7 +5379,8 @@ v8::MaybeLocal<v8::Value> Evaluate(const std::string& js_code) {
   return MaybeLocal<v8::Value>(scope.Escape(script.ToLocalChecked()->Run()));
 }
 
-void RunEventLoop(const std::function<void()>& callback, UvLoopBehavior behavior) {
+void RunEventLoop(const std::function<void()>& callback,
+                  UvLoopBehavior behavior) {
   if (_event_loop_running) {
     return;  // TODO(th): return error
   }
