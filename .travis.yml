@@ -14,10 +14,21 @@ cache:
   directories:
     - out/Release
 
+env:
+  matrix:
+    - LINT_ONLY=1
+    - LINT_ONLY=0
+
 matrix:
   exclude:
-  - os: osx
-    compiler: gcc
+    - os: osx
+      compiler: gcc
+    # Exclude LINT_ONLY jobs on osx as well as clang.
+    # This should result in a single LINT_ONLY job overall.
+    - env: LINT_ONLY=1
+      os: osx
+    - env: LINT_ONLY=1
+      compiler: clang
 
 addons:
   apt:
@@ -33,4 +44,5 @@ before_script:
   - ./configure --shared
 
 script:
-  - make -j5
+  - if [ $LINT_ONLY == 1 ]; then make lint-cpp; fi
+  - if [ $LINT_ONLY == 0 ]; then make -j5; fi
