@@ -5,6 +5,7 @@
 #include <functional>
 #include <initializer_list>
 #include "v8.h"
+#include "uv.h"
 #include "node.h"
 
 namespace node { namespace lib {

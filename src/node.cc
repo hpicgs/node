@@ -19,6 +19,7 @@
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+#include "node_lib.h"
 #include "node_buffer.h"
 #include "node_constants.h"
 #include "node_javascript.h"
@@ -28,7 +29,6 @@
 #include "node_revert.h"
 #include "node_debug_options.h"
 #include "node_perf.h"
-#include "node_lib.h"
 
 #if defined HAVE_PERFCTR
 #include "node_counters.h"
