@@ -32,6 +32,18 @@ namespace node { namespace lib {
     }
 
     /**
+     * @brief Configures the uv loop behavior, which is used within the Node.js event loop.
+     * 
+     * Contains various behavior patterns for the uv loop, which is used within the Node.js event loop.
+     * *Important*: Contains the same values as `uv_run_mode`.
+     */
+    enum class UvLoopBehavior : int {
+        RUN_DEFAULT  = UV_RUN_DEFAULT,  /*!< Processes events as long as events are available. */
+        RUN_ONCE     = UV_RUN_ONCE,     /*!< Processes events once from the uv loop. If there are currently no events, the loop will wait until at least one event appeared. */
+        RUN_NOWAIT   = UV_RUN_NOWAIT,   /*!< Processes events once from the uv loop. If there are currently no events, the loop will *not* wait und return immediately. */
+    };
+
+    /**
      * @brief Indicates, whether the Node.js event loop is executed by `RunEventLoop`.
      * @return True, if the Node.js event loop is executed by `RunEventLoop`. False otherwise. 
      */
@@ -84,10 +96,10 @@ namespace node { namespace lib {
      * 
      * Processes all currently pending events in the Node.js event loop.
      * This method returns immediately if there are no pending events.
-     * @param uv_loop_behavior The uv event loop behavior.
+     * @param behavior The uv event loop behavior.
      * @return True, if more events need to be processed. False otherwise.
      */
-    NODE_EXTERN bool ProcessEvents(uv_run_mode uv_loop_behavior = UV_RUN_NOWAIT);
+    NODE_EXTERN bool ProcessEvents(UvLoopBehavior behavior = UvLoopBehavior::RUN_NOWAIT);
 
     /**
      * @brief Starts the execution of the Node.js event loop. Calling the given callback once per loop tick.
@@ -95,10 +107,10 @@ namespace node { namespace lib {
      * Executes the Node.js event loop as long as events keep coming.
      * Once per loop execution, after events were processed, the given callback is executed.
      * The event loop can be paused by calling `StopEventLoop`.
-     * @param uv_loop_behavior The uv event loop behavior.
+     * @param behavior The uv event loop behavior.
      * @param callback The callback, which should be executed periodically while the calling thread is blocked.
      */
-    NODE_EXTERN void RunEventLoop(const std::function<void()> & callback, uv_run_mode uv_loop_behavior = UV_RUN_NOWAIT);
+    NODE_EXTERN void RunEventLoop(const std::function<void()> & callback, UvLoopBehavior behavior = UvLoopBehavior::RUN_NOWAIT);
 
 
     /*********************************************************
