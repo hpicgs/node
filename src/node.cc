@@ -5098,16 +5098,16 @@ void _RegisterModuleCallback(v8::Local<v8::Object> exports,
           v8::Local<v8::Value> /*module*/,
           v8::Local<v8::Context> /*context*/,
           void* priv) {
-    auto module_functions = static_cast<std::map<std::string,
+    auto module_fns = static_cast<std::map<std::string,
                                         v8::FunctionCallback>*>(priv);
-    if (!module_functions) {
+    if (!module_fns) {
       fprintf(stderr, "_RegisterModuleCallback: module_functions is null");
       return;
     }
-    for (std::pair<std::string, FunctionCallback> element : *module_functions) {
+    for (std::pair<std::string, v8::FunctionCallback> element : *module_fns) {
         NODE_SET_METHOD(exports, element.first.c_str(), element.second);
     }
-    delete module_functions;
+    delete module_fns;
 }
 
 namespace deinitialize {

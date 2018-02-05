@@ -11,8 +11,6 @@
 
 namespace node { namespace lib {
 
-using namespace v8;
-
 namespace internal {  // internals, provided for experienced users
 
 /**
@@ -23,7 +21,7 @@ namespace internal {  // internals, provided for experienced users
  * *Important* Use with caution, changing this object might break Node.js.
  * @return Pointer to the `v8::Isolate`.
  */
-Isolate* isolate();
+v8::Isolate* isolate();
 
 /**
  * @brief Returns the `node::Environment` for Node.js.
@@ -83,7 +81,7 @@ NODE_EXTERN int Deinitialize();
  * @param path The path to the JavaScript file.
  * @return The return value of the given JavaScript file.
  */
-NODE_EXTERN MaybeLocal<Value> Run(const std::string& path);
+NODE_EXTERN v8::MaybeLocal<v8::Value> Run(const std::string& path);
 
 /*********************************************************
  * Handle JavaScript events
@@ -137,7 +135,7 @@ NODE_EXTERN void StopEventLoop();
  * @param java_script_code The code to evaluate.
  * @return The return value of the evaluated code.
  */
-NODE_EXTERN MaybeLocal<Value> Evaluate(const std::string& js_code);
+NODE_EXTERN v8::MaybeLocal<v8::Value> Evaluate(const std::string& js_code);
 
 /**
  * @brief Returns the JavaScript root object.
@@ -145,7 +143,7 @@ NODE_EXTERN MaybeLocal<Value> Evaluate(const std::string& js_code);
  * Returns the global root object for the current JavaScript context.
  * @return The global root object.
  */
-NODE_EXTERN MaybeLocal<Object> GetRootObject();
+NODE_EXTERN v8::MaybeLocal<v8::Object> GetRootObject();
 
 /**
  * @brief Registers a native C++ module.
@@ -170,12 +168,6 @@ NODE_EXTERN void RegisterModule(const std::string& name,
                                 const std::string& target = "");
 
 /**
- * This type definition is used to provide a map of strings -> functions to
- * RegisterModule().
- */
-using ModuleFunctionsMap = std::map<std::string, FunctionCallback>;
-
-/**
  * @brief Registers a native C++ module.
  *
  * Adds a native module to the Node.js engine.
@@ -188,9 +180,10 @@ using ModuleFunctionsMap = std::map<std::string, FunctionCallback>;
  * `const target = process.binding(module_name)`) If empty, the module
  * will *not* be registered within the global JavaScript context automatically.
  */
-NODE_EXTERN void RegisterModule(const std::string& name,
-                                const ModuleFunctionsMap& module_functions,
-                                const std::string& target = "");
+NODE_EXTERN void RegisterModule(
+    const std::string& name,
+    const std::map<std::string, v8::FunctionCallback>& module_functions,
+    const std::string& target = "");
 
 
 /*********************************************************
@@ -209,7 +202,7 @@ NODE_EXTERN void RegisterModule(const std::string& name,
  * different locations by providing the full path to the module.
  * @return The export object of the NPM module.
  */
-NODE_EXTERN MaybeLocal<Object> IncludeModule(const std::string& name);
+NODE_EXTERN v8::MaybeLocal<v8::Object> IncludeModule(const std::string& name);
 
 /**
  * @brief Returns a member of the given object.
@@ -219,8 +212,8 @@ NODE_EXTERN MaybeLocal<Object> IncludeModule(const std::string& name);
  * @param value_name The name of the requested value.
  * @return The requested value.
  */
-NODE_EXTERN MaybeLocal<Value> GetValue(Local<Object> object,
-                                       const std::string& value_name);
+NODE_EXTERN v8::MaybeLocal<v8::Value> GetValue(v8::Local<v8::Object> object,
+                                               const std::string& value_name);
 
 /**
  * @brief Calls a method on a given object.
@@ -233,9 +226,10 @@ NODE_EXTERN MaybeLocal<Value> GetValue(Local<Object> object,
  * @param args The parameters to pass to the called function.
  * @return The return value of the called function.
  */
-NODE_EXTERN MaybeLocal<Value> Call(Local<Object> object,
-                                   const std::string& function_name,
-                                   const std::vector<Local<Value>>& args = {});
+NODE_EXTERN v8::MaybeLocal<v8::Value> Call(
+    v8::Local<v8::Object> object,
+    const std::string& function_name,
+    const std::vector<v8::Local<v8::Value>>& args = {});
 
 /**
  * @brief Calls a method on a given object.
@@ -249,9 +243,10 @@ NODE_EXTERN MaybeLocal<Value> Call(Local<Object> object,
  * arguments must be known at compile time.
  * @return The return value of the called function.
  */
-NODE_EXTERN MaybeLocal<Value> Call(Local<Object> object,
-                                   const std::string& function_name,
-                                   std::initializer_list<Local<Value>> args);
+NODE_EXTERN v8::MaybeLocal<v8::Value> Call(
+    v8::Local<v8::Object> object,
+    const std::string& function_name,
+    std::initializer_list<v8::Local<v8::Value>> args);
 
 /**
  * @brief Calls a given method on a given object.
@@ -263,9 +258,10 @@ NODE_EXTERN MaybeLocal<Value> Call(Local<Object> object,
  * @param args The parameters to pass to the called function.
  * @return The return value of the called function.
  */
-NODE_EXTERN MaybeLocal<Value> Call(Local<Object> receiver,
-                                   Local<Function> function,
-                                   const std::vector<Local<Value>>& args = {});
+NODE_EXTERN v8::MaybeLocal<v8::Value> Call(
+    v8::Local<v8::Object> receiver,
+    v8::Local<v8::Function> function,
+    const std::vector<v8::Local<v8::Value>>& args = {});
 
 /**
  * @brief Calls a given method on a given object.
@@ -278,9 +274,10 @@ NODE_EXTERN MaybeLocal<Value> Call(Local<Object> receiver,
  * arguments must be known at compile time.
  * @return The return value of the called function.
  */
-NODE_EXTERN MaybeLocal<Value> Call(Local<Object> receiver,
-                                   Local<Function> function,
-                                   std::initializer_list<Local<Value>> args);
+NODE_EXTERN v8::MaybeLocal<v8::Value> Call(
+    v8::Local<v8::Object> receiver,
+    v8::Local<v8::Function> function,
+    std::initializer_list<v8::Local<v8::Value>> args);
 }  // namespace lib
 
 }  // namespace node
