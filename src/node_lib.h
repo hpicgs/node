@@ -31,6 +31,13 @@ namespace node { namespace lib {
         Environment* environment();
     }
 
+    namespace initialize {
+        void initV8();
+        void createIsolate(v8::Isolate::CreateParams params); 
+        void createInitialEnvironment();
+        void configureOpenSsl();
+    } // namespace initialize
+
     /**
      * @brief Indicates, whether the Node.js event loop is executed by `RunEventLoop`.
      * @return True, if the Node.js event loop is executed by `RunEventLoop`. False otherwise. 

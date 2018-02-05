@@ -4941,35 +4941,13 @@ int Start(int argc, char** argv) {
   // This needs to run *before* V8::Initialize().  The const_cast is not
   // optional, in case you're wondering.
   int exec_argc;
-  const char** exec_argv;
+  const char** exec_argv = nullptr;
   Init(&argc, const_cast<const char**>(argv), &exec_argc, &exec_argv);
 
-#if HAVE_OPENSSL
-  {
-    std::string extra_ca_certs;
-    if (SafeGetenv("NODE_EXTRA_CA_CERTS", &extra_ca_certs))
-      crypto::UseExtraCaCerts(extra_ca_certs);
-  }
-#ifdef NODE_FIPS_MODE
-  // In the case of FIPS builds we should make sure
-  // the random source is properly initialized first.
-  OPENSSL_init();
-#endif  // NODE_FIPS_MODE
-  // V8 on Windows doesn't have a good source of entropy. Seed it from
-  // OpenSSL's pool.
-  V8::SetEntropySource(crypto::EntropySource);
-#endif  // HAVE_OPENSSL
+  lib::initialize::configureOpenSsl();
 
-  v8_platform.Initialize(v8_thread_pool_size, uv_default_loop());
-  // Enable tracing when argv has --trace-events-enabled.
-  if (trace_enabled) {
-    fprintf(stderr, "Warning: Trace event is an experimental feature "
-            "and could change at any time.\n");
-    v8_platform.StartTracingAgent();
-  }
-  V8::Initialize();
-  node::performance::performance_v8_start = PERFORMANCE_NOW();
-  v8_initialized = true;
+  lib::initialize::initV8();
+  
   const int exit_code =
       Start(uv_default_loop(), argc, argv, exec_argc, exec_argv);
   if (trace_enabled) {
@@ -5064,7 +5042,7 @@ private:
 };
 
 ArrayBufferAllocator* allocator;
-Isolate::CreateParams params;
+Isolate::CreateParams isolateParams;
 Locker* locker;
 IsolateData* isolate_data;
 Isolate::Scope* isolate_scope;
@@ -5170,7 +5148,7 @@ void initV8() {
   v8_initialized = true;
 }
 
-void createIsolate() {
+void createIsolate(Isolate::CreateParams params) {
   allocator = new ArrayBufferAllocator();
   params.array_buffer_allocator = allocator;
 #ifdef NODE_ENABLE_VTUNE_PROFILING
@@ -5300,7 +5278,7 @@ void Initialize(const std::string& program_name, const std::vector<std::string>&
   // Start 2
   //////////
 
-  initialize::createIsolate();
+  initialize::createIsolate(isolateParams);
 
   initialize::createInitialEnvironment();
 
