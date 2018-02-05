@@ -5271,6 +5271,12 @@ void _StartEnv(int argc,
 }  // namespace initialize
 
 void Initialize(const std::string& program_name, const std::vector<std::string>& node_args) {
+  cmd_args = new CmdArgs(program_name, node_args);
+
+  Initialize(cmd_args->argc, cmd_args->argv);
+}
+
+void Initialize(int argc, const char** argv) {
   //////////
   // Start 1
   //////////
@@ -5278,11 +5284,9 @@ void Initialize(const std::string& program_name, const std::vector<std::string>&
   PlatformInit();
   node::performance::performance_node_start = PERFORMANCE_NOW();
 
-  cmd_args = new CmdArgs(program_name, node_args);
-
   // Hack around with the argv pointer. Used for process.title = "blah --args".
   // argv won't be modified
-  uv_setup_args(cmd_args->argc, const_cast<char**>(cmd_args->argv));
+  uv_setup_args(argc, const_cast<char**>(argv));
 
   // This needs to run *before* V8::Initialize().  The const_cast is not
   // optional, in case you're wondering.
@@ -5290,7 +5294,7 @@ void Initialize(const std::string& program_name, const std::vector<std::string>&
   // don't support these, they are not used.
   int exec_argc = 0;
   const char** exec_argv = nullptr;
-  Init(&cmd_args->argc, cmd_args->argv, &exec_argc, &exec_argv);
+  Init(&argc, argv, &exec_argc, &exec_argv);
 
   initialize::configureOpenSsl();
 
@@ -5308,7 +5312,7 @@ void Initialize(const std::string& program_name, const std::vector<std::string>&
   // Start environment
   //////////
 
-  initialize::_StartEnv(cmd_args->argc, (const char* const*)cmd_args->argv);
+  initialize::_StartEnv(argc, argv);
 }
 
 int Deinitialize() {
