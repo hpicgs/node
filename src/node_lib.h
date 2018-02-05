@@ -1,4 +1,5 @@
-#pragma once
+#ifndef SRC_NODE_LIB_H_
+#define SRC_NODE_LIB_H_
 
 #include <string>
 #include <vector>
@@ -12,7 +13,7 @@ namespace node { namespace lib {
 
 using namespace v8;
 
-namespace internal { // internals, made for experienced users
+namespace internal {  // internals, provided for experienced users
 
 /**
  * @brief Returns the `v8::Isolate` for Node.js.
@@ -172,7 +173,7 @@ NODE_EXTERN void RegisterModule(const std::string& name,
  * This type definition is used to provide a map of strings -> functions to
  * RegisterModule().
  */
-using ModuleFunctionsMap = const std::map<std::string, FunctionCallback>;
+using ModuleFunctionsMap = std::map<std::string, FunctionCallback>;
 
 /**
  * @brief Registers a native C++ module.
@@ -188,7 +189,7 @@ using ModuleFunctionsMap = const std::map<std::string, FunctionCallback>;
  * will *not* be registered within the global JavaScript context automatically.
  */
 NODE_EXTERN void RegisterModule(const std::string& name,
-                                ModuleFunctionsMap& module_functions,
+                                const ModuleFunctionsMap& module_functions,
                                 const std::string& target = "");
 
 
@@ -280,4 +281,9 @@ NODE_EXTERN MaybeLocal<Value> Call(Local<Object> receiver,
 NODE_EXTERN MaybeLocal<Value> Call(Local<Object> receiver,
                                    Local<Function> function,
                                    std::initializer_list<Local<Value>> args);
-}}
+}  // namespace lib
+
+}  // namespace node
+
+
+#endif  // SRC_NODE_LIB_H_

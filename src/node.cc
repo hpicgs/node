@@ -5000,8 +5000,7 @@ namespace lib {
  * @brief The CmdArgs class is a container for argc and argv.
  */
 class CmdArgs {
-
-public:
+ public:
   /**
    * @brief CmdArgs creates valid argc and argv variables from a program name
    * and arguments.
@@ -5020,7 +5019,7 @@ public:
       argv(nullptr) {
     size_t total_size = 0;
     total_size += program_name.size() + 1;
-    for (const auto& argument: arguments) {
+    for (const auto& argument : arguments) {
       total_size += argument.size() + 1;
     }
 
@@ -5028,15 +5027,15 @@ public:
     argument_data_.reserve(total_size);
     offsets.push_back(argument_data_.size());
     argument_data_ += program_name;
-    argument_data_ += char(0x0);
-    for (const auto& argument: arguments) {
+    argument_data_ += static_cast<char>(0x0);
+    for (const auto& argument : arguments) {
       offsets.push_back(argument_data_.size());
       argument_data_ += argument;
-      argument_data_ += char(0x0);
+      argument_data_ += static_cast<char>(0x0);
     }
 
     argument_pointers_.resize(offsets.size());
-    for (std::size_t i=0; i<argument_pointers_.size(); ++i) {
+    for (std::size_t i=0; i < argument_pointers_.size(); ++i) {
       argument_pointers_[i] = argument_data_.data() + offsets[i];
     }
     argc = argument_pointers_.size();
@@ -5055,7 +5054,7 @@ public:
    */
   const char** argv;
 
-private:
+ private:
   /**
    * @brief argument_data contains the program name and the arguments separated
    * by null bytes
@@ -5157,7 +5156,7 @@ void _DeinitV8() {
   v8_platform.Dispose();
 }
 
-} // namespace deinitialize
+}  // namespace deinitialize
 
 
 namespace initialize {
@@ -5186,8 +5185,8 @@ void _CreateIsolate() {
   if (_isolate == nullptr) {
     fprintf(stderr, "Could not create isolate.");
     fflush(stderr);
-    return; // TODO: Handle error
-    //return 12;  // Signal internal error.
+    return;  // TODO(th): Handle error
+    // return 12;  // Signal internal error.
   }
 
   _isolate->AddMessageListener(OnMessage);
@@ -5209,7 +5208,7 @@ void _CreateIsolate() {
 void _CreateInitialEnvironment() {
   locker = new Locker(_isolate);
   isolate_scope = new Isolate::Scope(_isolate);
-  // TODO (jh): Once we write a Deinit(), we need to put this on the heap
+  // TODO(jh): Once we write a Deinit(), we need to put this on the heap
   // to call the deconstructor.
   static HandleScope handle_scope(_isolate);
   isolate_data = new IsolateData(_isolate, uv_default_loop(),
@@ -5259,8 +5258,8 @@ void _StartEnv(int argc,
 
   if (debug_options.inspector_enabled() &&
       !v8_platform.InspectorStarted(_environment)) {
-    return; // TODO (jh): Handle error
-    //return 12;  // Signal internal error.
+    return;  // TODO(jh): Handle error
+    // return 12;  // Signal internal error.
   }
 
   _environment->set_abort_on_uncaught_exception(abort_on_uncaught_exception);
@@ -5362,13 +5361,12 @@ v8::MaybeLocal<v8::Value> Evaluate(const std::string& js_code) {
   // we will handle exceptions ourself.
   try_catch.SetVerbose(false);
 
-  // TODO jh: set reasonable ScriptOrigin. This is used for debugging
-  //ScriptOrigin origin(filename);
+  // TODO(jh): set reasonable ScriptOrigin. This is used for debugging
+  // ScriptOrigin origin(filename);
   MaybeLocal<v8::Script> script = v8::Script::Compile(
         _environment->context(),
         v8::String::NewFromUtf8(_isolate, js_code.c_str())
-        /*removed param: origin*/
-        );
+        /*removed param: origin*/);
 
   if (script.IsEmpty()) {
     ReportException(_environment, try_catch);
@@ -5380,12 +5378,12 @@ v8::MaybeLocal<v8::Value> Evaluate(const std::string& js_code) {
 
 void RunEventLoop(const std::function<void()>& callback) {
   if (_event_loop_running) {
-    return; // TODO: return error
+    return;  // TODO(th): return error
   }
-  // TODO (jh): this was missing after building RunEventLoop from the Start()
+  // TODO(jh): this was missing after building RunEventLoop from the Start()
   // functions. We are not sure why the sealed scope is necessary.
   // Please investigate.
-  //SealHandleScope seal(isolate);
+  // SealHandleScope seal(isolate);
   bool more = false;
   _event_loop_running = true;
   request_stop = false;
@@ -5543,7 +5541,7 @@ bool ProcessEvents() {
   return TickEventLoop(*_environment);
 }
 
-}  // namespace node::lib
+}  // namespace lib
 
 }  // namespace node
 
