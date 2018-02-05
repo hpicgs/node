@@ -5068,6 +5068,14 @@ class CmdArgs {
   std::vector<const char*> argument_pointers_;
 };
 
+class HandleScopeHeapWrapper {
+ public:
+  HandleScopeHeapWrapper(v8::Isolate* isolate)
+    : scope_(isolate) { }
+ private:
+  HandleScope scope_;
+};
+
 ArrayBufferAllocator* allocator;
 Isolate::CreateParams params;
 Locker* locker;
@@ -5080,6 +5088,7 @@ CmdArgs* cmd_args = nullptr;
 bool _event_loop_running = false;
 v8::Isolate* _isolate = nullptr;
 Environment* _environment = nullptr;
+HandleScopeHeapWrapper* _handle_scope_wrapper = nullptr;
 
 bool eventLoopIsRunning() {
   return _event_loop_running;
@@ -5130,6 +5139,9 @@ int _StopEnv() {
 
   v8_platform.DrainVMTasks();
   WaitForInspectorDisconnect(_environment);
+
+  delete _handle_scope_wrapper;
+  _handle_scope_wrapper = nullptr;
 
   return exit_code;
 }
@@ -5209,9 +5221,7 @@ void _CreateIsolate() {
 void _CreateInitialEnvironment() {
   locker = new Locker(_isolate);
   isolate_scope = new Isolate::Scope(_isolate);
-  // TODO(jh): Once we write a Deinit(), we need to put this on the heap
-  // to call the deconstructor.
-  static HandleScope handle_scope(_isolate);
+  _handle_scope_wrapper = new HandleScopeHeapWrapper(_isolate);
   isolate_data = new IsolateData(_isolate, uv_default_loop(),
                                  allocator->zero_fill_field());
 
