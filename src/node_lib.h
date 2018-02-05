@@ -66,6 +66,20 @@ namespace node { namespace lib {
     NODE_EXTERN void Initialize(const std::string& program_name = "node_lib_executable", const std::vector<std::string>& node_args = {});
 
     /**
+     * @brief Starts the Node.js engine.
+     *
+     * Starts the Node.js engine by executing bootstrap code.
+     * This is required in order to load scripts (e.g. `Run`) or evaluate JavaScript code (e.g. `Evaluate`).
+     * Additionally, Node.js will not process any pending events caused by the JavaScript execution as long as
+     * `ProcessEvents` or `RunMainLoop` is not called.
+     * @param argc The number of arguments.
+     * @param argv List of arguments for the Node.js engine,
+     *             where the first argument needs to be the program name.
+     *             The number of arguments must correspond to argc.
+     */
+    NODE_EXTERN void Initialize(int argc, const char** argv);
+
+    /**
      * @brief Stops the Node.js engine and destroys all current state.
      * 
      * Stops the Node.js engine.
