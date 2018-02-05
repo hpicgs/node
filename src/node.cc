@@ -4799,7 +4799,7 @@ Local<Context> NewContext(Isolate* isolate,
   return context;
 }
 
-inline static bool TickEventLoop(Environment & env) {
+inline static bool TickEventLoop(Environment& env) {
   uv_run(env.event_loop(), UV_RUN_NOWAIT);
 
   if (uv_loop_alive(env.event_loop())) {
@@ -4819,7 +4819,9 @@ inline static bool TickEventLoop(Environment & env) {
   return uv_loop_alive(env.event_loop());
 }
 
-// This is where the magic happens. Creates JavaScript context and a JS Environment, then runs the uv event loop until it is no longer alive (see TickEventLoop()), then tears down Env and context and returns JS exit code.
+// This is where the magic happens. Creates JavaScript context and a JS
+// Environment, then runs the uv event loop until it is no longer alive (see
+// TickEventLoop()), then tears down Env and context and returns JS exit code.
 inline int Start(Isolate* isolate, IsolateData* isolate_data,
                  int argc, const char* const* argv,
                  int exec_argc, const char* const* exec_argv) {
@@ -5001,17 +5003,19 @@ class CmdArgs {
 
 public:
   /**
-   * @brief CmdArgs creates valid argc and argv variables from a program name and arguments.
+   * @brief CmdArgs creates valid argc and argv variables from a program name
+   * and arguments.
    *
-   * The argv buffer is a contiguous, adjacent char buffer and contains the program name
-   * as its first item followed by the provided arguments. argc is the number of
-   * arguments + 1 (the program name).
+   * The argv buffer is a contiguous, adjacent char buffer and contains the
+   * program name as its first item followed by the provided arguments. argc
+   * is the number of arguments + 1 (the program name).
    * The resulting argv buffer should not be modified.
    *
    * @param program_name the name of the executable
    * @param arguments the arguments for the program
    */
-  CmdArgs(const std::string& program_name, const std::vector<std::string>& arguments)
+  CmdArgs(const std::string& program_name,
+          const std::vector<std::string>& arguments)
     : argc(0),
       argv(nullptr) {
     size_t total_size = 0;
@@ -5046,18 +5050,20 @@ public:
    */
   int argc;
   /**
-   * @brief argv is an array containing pointers to the arguments (and the program name),
-   * it should not be modified
+   * @brief argv is an array containing pointers to the arguments (and the
+   * program name), it should not be modified
    */
   const char** argv;
 
 private:
   /**
-   * @brief argument_data contains the program name and the arguments separated by null bytes
+   * @brief argument_data contains the program name and the arguments separated
+   * by null bytes
    */
   std::string argument_data_;
   /**
-   * @brief argument_pointers contains pointers to the beginnings of the strings in argument_data
+   * @brief argument_pointers contains pointers to the beginnings of the
+   * strings in argument_data
    */
   std::vector<const char*> argument_pointers_;
 };
@@ -5093,12 +5099,13 @@ void _RegisterModuleCallback(v8::Local<v8::Object> exports,
           v8::Local<v8::Value> /*module*/,
           v8::Local<v8::Context> /*context*/,
           void* priv) {
-    auto module_functions = static_cast<std::map<std::string, v8::FunctionCallback>*>(priv);
+    auto module_functions = static_cast<std::map<std::string,
+                                        v8::FunctionCallback>*>(priv);
     if (!module_functions) {
       fprintf(stderr, "_RegisterModuleCallback: module_functions is null");
       return;
     }
-    for (std::pair<std::string, v8::FunctionCallback> element : *module_functions) {
+    for (std::pair<std::string, FunctionCallback> element : *module_functions) {
         NODE_SET_METHOD(exports, element.first.c_str(), element.second);
     }
     delete module_functions;
@@ -5202,13 +5209,18 @@ void _CreateIsolate() {
 void _CreateInitialEnvironment() {
   locker = new Locker(_isolate);
   isolate_scope = new Isolate::Scope(_isolate);
-  static HandleScope handle_scope(_isolate); // TODO (jh): Once we write a Deinit(), we need to put this on the heap to call the deconstructor.
-  isolate_data = new IsolateData(_isolate, uv_default_loop(), allocator->zero_fill_field());
+  // TODO (jh): Once we write a Deinit(), we need to put this on the heap
+  // to call the deconstructor.
+  static HandleScope handle_scope(_isolate);
+  isolate_data = new IsolateData(_isolate, uv_default_loop(),
+                                 allocator->zero_fill_field());
 
   //////////
   // Start 3
   //////////
-  //HandleScope handle_scope(isolate); // (jh) in the initial Start functions, two handle scopes were created (one in Start() 2 and one in Start() 3). Currently, we have no idea why.
+  // (jh) in the initial Start functions, two handle scopes were created
+  // (one in Start() 2 and one in Start() 3). Currently, we have no idea why.
+  // HandleScope handle_scope(isolate);
   context = NewContext(_isolate);
   context_scope = new Context::Scope(context);
   _environment = new node::Environment(isolate_data, context);
@@ -5245,7 +5257,8 @@ void _StartEnv(int argc,
   const char* path = argc > 1 ? argv[1] : nullptr;
   StartInspector(_environment, path, debug_options);
 
-  if (debug_options.inspector_enabled() && !v8_platform.InspectorStarted(_environment)) {
+  if (debug_options.inspector_enabled() &&
+      !v8_platform.InspectorStarted(_environment)) {
     return; // TODO (jh): Handle error
     //return 12;  // Signal internal error.
   }
@@ -5268,7 +5281,8 @@ void _StartEnv(int argc,
 
 }  // namespace initialize
 
-void Initialize(const std::string& program_name, const std::vector<std::string>& node_args) {
+void Initialize(const std::string& program_name,
+                const std::vector<std::string>& node_args) {
   //////////
   // Start 1
   //////////
@@ -5306,7 +5320,8 @@ void Initialize(const std::string& program_name, const std::vector<std::string>&
   // Start environment
   //////////
 
-  initialize::_StartEnv(cmd_args->argc, const_cast<const char* const*>(cmd_args->argv));
+  initialize::_StartEnv(cmd_args->argc,
+                        const_cast<const char* const*>(cmd_args->argv));
 }
 
 int Deinitialize() {
@@ -5339,7 +5354,7 @@ v8::MaybeLocal<v8::Value> Run(const std::string& path) {
   return Evaluate(buffer.str());
 }
 
-v8::MaybeLocal<v8::Value> Evaluate(const std::string& java_script_code) {
+v8::MaybeLocal<v8::Value> Evaluate(const std::string& js_code) {
   EscapableHandleScope scope(_environment->isolate());
   TryCatch try_catch(_environment->isolate());
 
@@ -5347,11 +5362,14 @@ v8::MaybeLocal<v8::Value> Evaluate(const std::string& java_script_code) {
   // we will handle exceptions ourself.
   try_catch.SetVerbose(false);
 
-  //ScriptOrigin origin(filename); // TODO jh: set reasonable ScriptOrigin. This is used for debugging
-  MaybeLocal<v8::Script> script = v8::Script::Compile(_environment->context(),
-                                                      v8::String::NewFromUtf8(_isolate,
-                                                                              java_script_code.c_str())
-                                                                              /*origin*/);
+  // TODO jh: set reasonable ScriptOrigin. This is used for debugging
+  //ScriptOrigin origin(filename);
+  MaybeLocal<v8::Script> script = v8::Script::Compile(
+        _environment->context(),
+        v8::String::NewFromUtf8(_isolate, js_code.c_str())
+        /*removed param: origin*/
+        );
+
   if (script.IsEmpty()) {
     ReportException(_environment, try_catch);
     return MaybeLocal<v8::Value>();
@@ -5364,7 +5382,10 @@ void RunEventLoop(const std::function<void()>& callback) {
   if (_event_loop_running) {
     return; // TODO: return error
   }
-  //SealHandleScope seal(isolate); // TODO (jh): this was missing after building RunEventLoop from the Start() functions. We are not sure why the sealed scope is necessary. Please investigate.
+  // TODO (jh): this was missing after building RunEventLoop from the Start()
+  // functions. We are not sure why the sealed scope is necessary.
+  // Please investigate.
+  //SealHandleScope seal(isolate);
   bool more = false;
   _event_loop_running = true;
   request_stop = false;
@@ -5387,19 +5408,23 @@ v8::MaybeLocal<v8::Object> GetRootObject() {
 v8::MaybeLocal<v8::Value> Call(v8::Local<v8::Object> receiver,
                                v8::Local<v8::Function> function,
                                const std::vector<v8::Local<v8::Value>>& args) {
-  return function->Call(receiver, args.size(), const_cast<v8::Local<v8::Value>*>(&args[0]));
+  return function->Call(receiver,
+                        args.size(),
+                        const_cast<v8::Local<v8::Value>*>(&args[0]));
 }
 
 v8::MaybeLocal<v8::Value> Call(v8::Local<v8::Object> receiver,
                                v8::Local<v8::Function> function,
-                               std::initializer_list<v8::Local<v8::Value>> args) {
+                               std::initializer_list<v8::Local<Value>> args) {
   return Call(receiver, function, std::vector<v8::Local<v8::Value>>(args));
 }
 
 v8::MaybeLocal<v8::Value> Call(v8::Local<v8::Object> object,
                                const std::string& function_name,
                                const std::vector<v8::Local<v8::Value>>& args) {
-  MaybeLocal<v8::String> maybe_function_name = v8::String::NewFromUtf8(_isolate, function_name.c_str());
+  MaybeLocal<v8::String> maybe_function_name =
+      v8::String::NewFromUtf8(_isolate, function_name.c_str());
+
   Local<v8::String> v8_function_name;
 
   if (!maybe_function_name.ToLocal(&v8_function_name)) {
@@ -5423,12 +5448,14 @@ v8::MaybeLocal<v8::Value> Call(v8::Local<v8::Object> object,
 
 v8::MaybeLocal<v8::Value> Call(v8::Local<v8::Object> object,
                                const std::string& function_name,
-                               std::initializer_list<v8::Local<v8::Value>> args) {
+                               std::initializer_list<v8::Local<Value>> args) {
   return Call(object, function_name, std::vector<v8::Local<v8::Value>>(args));
 }
 
-v8::MaybeLocal<v8::Object> IncludeModule(const std::string& module_name) {
-  MaybeLocal<v8::String> maybe_arg = v8::String::NewFromUtf8(_isolate, module_name.c_str());
+v8::MaybeLocal<v8::Object> IncludeModule(const std::string& name) {
+  MaybeLocal<v8::String> maybe_arg =
+      v8::String::NewFromUtf8(_isolate, name.c_str());
+
   Local<v8::String> arg;
 
   if (!maybe_arg.ToLocal(&arg)) {
@@ -5456,8 +5483,11 @@ v8::MaybeLocal<v8::Object> IncludeModule(const std::string& module_name) {
   return MaybeLocal<v8::Object>(Local<v8::Object>::Cast(module));
 }
 
-v8::MaybeLocal<v8::Value> GetValue(v8::Local<v8::Object> object, const std::string& value_name) {
-  MaybeLocal<v8::String> maybe_key = v8::String::NewFromUtf8(_isolate, value_name.c_str());
+v8::MaybeLocal<v8::Value> GetValue(v8::Local<v8::Object> object,
+                                   const std::string& value_name) {
+  MaybeLocal<v8::String> maybe_key =
+      v8::String::NewFromUtf8(_isolate, value_name.c_str());
+
   Local<v8::String> key;
 
   if (!maybe_key.ToLocal(&key)) {
@@ -5489,10 +5519,17 @@ void RegisterModule(const std::string& name,
 }
 
 void RegisterModule(const std::string& name,
-                    const std::map<std::string, v8::FunctionCallback>& module_functions,
+                    const std::map<std::string,
+                    v8::FunctionCallback>& module_functions,
                     const std::string& target) {
-  auto map_on_heap = new const std::map<std::string, v8::FunctionCallback>(module_functions);
-  RegisterModule(name, node::lib::_RegisterModuleCallback, const_cast<std::map<std::string, v8::FunctionCallback>*>(map_on_heap), target);
+  auto map_on_heap = new const std::map<std::string,
+                                        v8::FunctionCallback>(module_functions);
+
+  RegisterModule(name,
+                 node::lib::_RegisterModuleCallback,
+                 const_cast<std::map<std::string,
+                                     v8::FunctionCallback>*>(map_on_heap),
+                 target);
 }
 
 void StopEventLoop() {

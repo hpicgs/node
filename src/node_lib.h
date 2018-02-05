@@ -10,21 +10,25 @@
 
 namespace node { namespace lib {
 
+using namespace v8;
+
 namespace internal { // internals, made for experienced users
 
 /**
  * @brief Returns the `v8::Isolate` for Node.js.
  *
- * Returns a pointer to the currently used `v8::Isolate`, if the Node.js engine is initialized already.
+ * Returns a pointer to the currently used `v8::Isolate`, if the Node.js engine
+ * is initialized already.
  * *Important* Use with caution, changing this object might break Node.js.
  * @return Pointer to the `v8::Isolate`.
  */
-v8::Isolate* isolate();
+Isolate* isolate();
 
 /**
  * @brief Returns the `node::Environment` for Node.js.
  *
- * Returns a pointer to the currently used `node::Environment`, if the Node.js engine is initialized already.
+ * Returns a pointer to the currently used `node::Environment`, if the Node.js
+ * engine is initialized already.
  * *Important* Use with caution, changing this object might break Node.js.
  * @return Pointer to the `node::Environment`.
  */
@@ -33,8 +37,9 @@ Environment* environment();
 }  // namespace internal
 
 /**
- * @brief Indicates, whether the Node.js event loop is executed by `RunEventLoop`.
- * @return True, if the Node.js event loop is executed by `RunEventLoop`. False otherwise.
+ * @brief Indicates if the Node.js event loop is executed by `RunEventLoop`.
+ * @return True, if the Node.js event loop is executed by `RunEventLoop`.
+ * False otherwise.
  */
 bool EventLoopIsRunning();
 
@@ -46,13 +51,15 @@ bool EventLoopIsRunning();
  * @brief Starts the Node.js engine without executing a concrete script.
  *
  * Starts the Node.js engine by executing bootstrap code.
- * This is required in order to load scripts (e.g. `Run`) or evaluate JavaScript code (e.g. `Evaluate`).
- * Additionally, Node.js will not process any pending events caused by the JavaScript execution as long as
- * `ProcessEvents` or `RunMainLoop` is not called.
+ * This is required in order to load scripts (e.g. `Run`) or evaluate
+ * JavaScript code (e.g. `Evaluate`).
+ * Additionally, Node.js will not process any pending events caused by the
+ * JavaScript execution as long as `ProcessEvents` or `RunMainLoop` is
+ * not called.
  * @param program_name The name for the Node.js application.
  * @param node_args List of arguments for the Node.js engine.
  */
-NODE_EXTERN void Initialize(const std::string& program_name = "node_lib_executable",
+NODE_EXTERN void Initialize(const std::string& program_name = "node_lib",
                             const std::vector<std::string>& node_args = {});
 
 /**
@@ -75,7 +82,7 @@ NODE_EXTERN int Deinitialize();
  * @param path The path to the JavaScript file.
  * @return The return value of the given JavaScript file.
  */
-NODE_EXTERN v8::MaybeLocal<v8::Value> Run(const std::string& path);
+NODE_EXTERN MaybeLocal<Value> Run(const std::string& path);
 
 /*********************************************************
  * Handle JavaScript events
@@ -91,12 +98,15 @@ NODE_EXTERN v8::MaybeLocal<v8::Value> Run(const std::string& path);
 NODE_EXTERN bool ProcessEvents();
 
 /**
- * @brief Starts the execution of the Node.js event loop. Calling the given callback once per loop tick.
+ * @brief Starts the execution of the Node.js event loop. Calling the given
+ * callback once per loop tick.
  *
  * Executes the Node.js event loop as long as events keep coming.
- * Once per loop execution, after events were processed, the given callback is executed.
- * The event loop can be paused by calling `StopEventLoop`.
- * @param callback The callback, which should be executed periodically while the calling thread is blocked.
+ * Once per loop execution, after events were processed, the given callback
+ * is executed. The event loop can be paused by calling `StopEventLoop`.
+ *
+ * @param callback The callback, which should be executed periodically while
+ * the calling thread is blocked.
  */
 NODE_EXTERN void RunEventLoop(const std::function<void()>& callback);
 
@@ -109,8 +119,8 @@ NODE_EXTERN void RunEventLoop(const std::function<void()>& callback);
  * @brief Issues the Node.js event loop to stop.
  *
  * Issues the Node.js event loop to stop.
- * The event loop will finish its current execution.
- * This means, that the loop is not guaranteed to have stopped when this method returns.
+ * The event loop will finish its current execution. This means, that the loop
+ * is not guaranteed to have stopped when this method returns.
  * The execution can be resumed by using `RunEventLoop` again.
  */
 NODE_EXTERN void StopEventLoop();
@@ -126,7 +136,7 @@ NODE_EXTERN void StopEventLoop();
  * @param java_script_code The code to evaluate.
  * @return The return value of the evaluated code.
  */
-NODE_EXTERN v8::MaybeLocal<v8::Value> Evaluate(const std::string& java_script_code);
+NODE_EXTERN MaybeLocal<Value> Evaluate(const std::string& js_code);
 
 /**
  * @brief Returns the JavaScript root object.
@@ -134,20 +144,24 @@ NODE_EXTERN v8::MaybeLocal<v8::Value> Evaluate(const std::string& java_script_co
  * Returns the global root object for the current JavaScript context.
  * @return The global root object.
  */
-NODE_EXTERN v8::MaybeLocal<v8::Object> GetRootObject();
+NODE_EXTERN MaybeLocal<Object> GetRootObject();
 
 /**
  * @brief Registers a native C++ module.
  *
  * Adds a native module to the Node.js engine.
- * The module is initialized within the given callback. Additionally, private data can be included in the module
- * using the priv pointer.
- * The module can be used in JavaScript by calling `let cpp_module = process.binding('module_name')`.
+ * The module is initialized within the given callback. Additionally, private
+ * data can be included in the module using the priv pointer.
+ * The module can be used in JavaScript by calling
+ * `let cpp_module = process.binding('module_name')`.
+ *
  * @param name The name for the module.
- * @param callback The method, which initializes the module (e.g. by adding methods to the module).
+ * @param callback The method, which initializes the module (e.g. by adding
+ * methods to the module).
  * @param priv Any private data, which should be included within the module.
- * @param target The name for the module within the JavaScript context. (e.g. `const target = process.binding(module_name)`)
- * If empty, the module will *not* be registered within the global JavaScript context automatically.
+ * @param target The name for the module within the JavaScript context. (e.g.
+ * `const target = process.binding(module_name)`) If empty, the module
+ * will *not* be registered within the global JavaScript context automatically.
  */
 NODE_EXTERN void RegisterModule(const std::string& name,
                                 const addon_context_register_func& callback,
@@ -155,18 +169,26 @@ NODE_EXTERN void RegisterModule(const std::string& name,
                                 const std::string& target = "");
 
 /**
+ * This type definition is used to provide a map of strings -> functions to
+ * RegisterModule().
+ */
+using ModuleFunctionsMap = const std::map<std::string, FunctionCallback>;
+
+/**
  * @brief Registers a native C++ module.
  *
  * Adds a native module to the Node.js engine.
  * Additionally, this method adds the given methods to the module.
- * The module can be used in JavaScript by calling `let cpp_module = process.binding('module_name')`.
+ * The module can be used in JavaScript by calling
+ * `let cpp_module = process.binding('module_name')`.
  * @param name The name for the module.
  * @param module_functions A list of functions and their names for the module.
- * @param target The name for the module within the JavaScript context. (e.g. `const target = process.binding(module_name)`)
- * If empty, the module will *not* be registered within the global JavaScript context automatically.
+ * @param target The name for the module within the JavaScript context. (e.g.
+ * `const target = process.binding(module_name)`) If empty, the module
+ * will *not* be registered within the global JavaScript context automatically.
  */
 NODE_EXTERN void RegisterModule(const std::string& name,
-                                const std::map<std::string, v8::FunctionCallback>& module_functions,
+                                ModuleFunctionsMap& module_functions,
                                 const std::string& target = "");
 
 
@@ -181,11 +203,12 @@ NODE_EXTERN void RegisterModule(const std::string& name,
  * This is achieved by calling `require('module_name')`.
  * *Important* Make sure the NPM module is installed before using this method.
  * @param module_name The name of the NPM module.
- * When using just the modules name, the "node_modules" directory should be located within the working directory.
- * You can also load modules from different locations by providing the full path to the module.
+ * When using just the modules name, the "node_modules" directory should be
+ * located within the working directory. You can also load modules from
+ * different locations by providing the full path to the module.
  * @return The export object of the NPM module.
  */
-NODE_EXTERN v8::MaybeLocal<v8::Object> IncludeModule(const std::string& module_name);
+NODE_EXTERN MaybeLocal<Object> IncludeModule(const std::string& name);
 
 /**
  * @brief Returns a member of the given object.
@@ -195,7 +218,8 @@ NODE_EXTERN v8::MaybeLocal<v8::Object> IncludeModule(const std::string& module_n
  * @param value_name The name of the requested value.
  * @return The requested value.
  */
-NODE_EXTERN v8::MaybeLocal<v8::Value> GetValue(v8::Local<v8::Object> object, const std::string& value_name);
+NODE_EXTERN MaybeLocal<Value> GetValue(Local<Object> object,
+                                       const std::string& value_name);
 
 /**
  * @brief Calls a method on a given object.
@@ -208,9 +232,9 @@ NODE_EXTERN v8::MaybeLocal<v8::Value> GetValue(v8::Local<v8::Object> object, con
  * @param args The parameters to pass to the called function.
  * @return The return value of the called function.
  */
-NODE_EXTERN v8::MaybeLocal<v8::Value> Call(v8::Local<v8::Object> object,
-                                           const std::string& function_name,
-                                           const std::vector<v8::Local<v8::Value>>& args = {});
+NODE_EXTERN MaybeLocal<Value> Call(Local<Object> object,
+                                   const std::string& function_name,
+                                   const std::vector<Local<Value>>& args = {});
 
 /**
  * @brief Calls a method on a given object.
@@ -220,12 +244,13 @@ NODE_EXTERN v8::MaybeLocal<v8::Value> Call(v8::Local<v8::Object> object,
  * Additionally, a list of parameters is passed to the called function.
  * @param object The container of the called function.
  * @param function_name The name of the function to call.
- * @param args The parameters to pass to the called function. The amount of arguments must be known at compile time.
+ * @param args The parameters to pass to the called function. The amount of
+ * arguments must be known at compile time.
  * @return The return value of the called function.
  */
-NODE_EXTERN v8::MaybeLocal<v8::Value> Call(v8::Local<v8::Object> object,
-                                           const std::string& function_name,
-                                           std::initializer_list<v8::Local<v8::Value>> args);
+NODE_EXTERN MaybeLocal<Value> Call(Local<Object> object,
+                                   const std::string& function_name,
+                                   std::initializer_list<Local<Value>> args);
 
 /**
  * @brief Calls a given method on a given object.
@@ -237,9 +262,9 @@ NODE_EXTERN v8::MaybeLocal<v8::Value> Call(v8::Local<v8::Object> object,
  * @param args The parameters to pass to the called function.
  * @return The return value of the called function.
  */
-NODE_EXTERN v8::MaybeLocal<v8::Value> Call(v8::Local<v8::Object> receiver,
-                                           v8::Local<v8::Function> function,
-                                           const std::vector<v8::Local<v8::Value>>& args = {});
+NODE_EXTERN MaybeLocal<Value> Call(Local<Object> receiver,
+                                   Local<Function> function,
+                                   const std::vector<Local<Value>>& args = {});
 
 /**
  * @brief Calls a given method on a given object.
@@ -248,10 +273,11 @@ NODE_EXTERN v8::MaybeLocal<v8::Value> Call(v8::Local<v8::Object> receiver,
  * Additionally, a list of parameters is passed to the called function.
  * @param object The receiver of the given function.
  * @param function The function to be called.
- * @param args The parameters to pass to the called function. The amount of arguments must be known at compile time.
+ * @param args The parameters to pass to the called function. The amount of
+ * arguments must be known at compile time.
  * @return The return value of the called function.
  */
-NODE_EXTERN v8::MaybeLocal<v8::Value> Call(v8::Local<v8::Object> receiver,
-                                           v8::Local<v8::Function> function,
-                                           std::initializer_list<v8::Local<v8::Value>> args);
+NODE_EXTERN MaybeLocal<Value> Call(Local<Object> receiver,
+                                   Local<Function> function,
+                                   std::initializer_list<Local<Value>> args);
 }}
