@@ -4799,8 +4799,8 @@ Local<Context> NewContext(Isolate* isolate,
   return context;
 }
 
-inline static bool TickEventLoop(Environment & env, uv_run_mode uv_loop_behavior) {
-  uv_run(env.event_loop(), uv_loop_behavior);
+inline static bool TickEventLoop(Environment & env, node::lib::UvLoopBehavior behavior) {
+  uv_run(env.event_loop(), static_cast<uv_run_mode>(behavior));
 
   if (uv_loop_alive(env.event_loop())) {
     return true;
@@ -4857,7 +4857,7 @@ inline int Start(Isolate* isolate, IsolateData* isolate_data,
     bool more;
     PERFORMANCE_MARK(&env, LOOP_START);
     do {
-      more = TickEventLoop(env, UV_RUN_DEFAULT);
+      more = TickEventLoop(env, node::lib::UvLoopBehavior::RUN_DEFAULT);
     } while (more == true);
     PERFORMANCE_MARK(&env, LOOP_EXIT);
   }
@@ -5249,6 +5249,12 @@ void _StartEnv(int argc,
 }  // namespace initialize
 
 void Initialize(const std::string& program_name, const std::vector<std::string>& node_args) {
+  cmd_args = new CmdArgs(program_name, node_args);
+
+  Initialize(cmd_args->argc, cmd_args->argv);
+}
+
+void Initialize(int argc, const char** argv) {
   //////////
   // Start 1
   //////////
@@ -5256,11 +5262,9 @@ void Initialize(const std::string& program_name, const std::vector<std::string>&
   PlatformInit();
   node::performance::performance_node_start = PERFORMANCE_NOW();
 
-  cmd_args = new CmdArgs(program_name, node_args);
-
   // Hack around with the argv pointer. Used for process.title = "blah --args".
   // argv won't be modified
-  uv_setup_args(cmd_args->argc, const_cast<char**>(cmd_args->argv));
+  uv_setup_args(argc, const_cast<char**>(argv));
 
   // This needs to run *before* V8::Initialize().  The const_cast is not
   // optional, in case you're wondering.
@@ -5268,7 +5272,7 @@ void Initialize(const std::string& program_name, const std::vector<std::string>&
   // don't support these, they are not used.
   int exec_argc = 0;
   const char** exec_argv = nullptr;
-  Init(&cmd_args->argc, cmd_args->argv, &exec_argc, &exec_argv);
+  Init(&argc, argv, &exec_argc, &exec_argv);
 
   initialize::configureOpenSsl();
 
@@ -5286,7 +5290,7 @@ void Initialize(const std::string& program_name, const std::vector<std::string>&
   // Start environment
   //////////
 
-  initialize::_StartEnv(cmd_args->argc, (const char* const*)cmd_args->argv);
+  initialize::_StartEnv(argc, argv);
 }
 
 int Deinitialize() {
@@ -5337,7 +5341,7 @@ v8::MaybeLocal<v8::Value> Evaluate(const std::string& java_script_code) {
   return MaybeLocal<v8::Value>(scope.Escape(script.ToLocalChecked()->Run()));
 }
 
-void RunEventLoop(const std::function<void()>& callback, uv_run_mode uv_loop_behavior) {
+void RunEventLoop(const std::function<void()>& callback, UvLoopBehavior behavior) {
   if (_event_loop_running) {
     return; // TODO: return error
   }
@@ -5346,7 +5350,7 @@ void RunEventLoop(const std::function<void()>& callback, uv_run_mode uv_loop_beh
   _event_loop_running = true;
   request_stop = false;
   do {
-    more = ProcessEvents(uv_loop_behavior);
+    more = ProcessEvents(behavior);
     callback();
   } while (more && !request_stop);
   request_stop = false;
@@ -5468,8 +5472,8 @@ void StopEventLoop() {
   request_stop = true;
 }
 
-bool ProcessEvents(uv_run_mode uv_loop_behavior) {
-  return TickEventLoop(*_environment, uv_loop_behavior);
+bool ProcessEvents(UvLoopBehavior behavior) {
+  return TickEventLoop(*_environment, behavior);
 }
 
 }  // namespace node::lib
