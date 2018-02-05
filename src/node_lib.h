@@ -7,6 +7,7 @@
 #include <functional>
 #include <initializer_list>
 #include "v8.h"
+#include "uv.h"
 #include "node.h"
 
 namespace node { namespace lib {
@@ -36,6 +37,28 @@ Environment* environment();
 }  // namespace internal
 
 /**
+ * @brief Configures the uv loop behavior, which is used within the Node.js
+ * event loop.
+ *
+ * Contains various behavior patterns for the uv loop, which is used within
+ * the Node.js event loop.
+ * *Important*: Contains the same values as `uv_run_mode`.
+ */
+enum class UvLoopBehavior : int {
+  RUN_DEFAULT  = UV_RUN_DEFAULT,
+  ///< Processes events as long as events are available.
+
+  RUN_ONCE     = UV_RUN_ONCE,
+  ///< Processes events once from the uv loop.
+  ///< If there are currently no events, the loop will wait until at least
+  ///< one event appeared.
+
+  RUN_NOWAIT   = UV_RUN_NOWAIT,
+  ///< Processes events once from the uv loop. If there are currently no events,
+  ///< the loop will *not* wait und return immediately.
+};
+
+/**
  * @brief Indicates if the Node.js event loop is executed by `RunEventLoop`.
  * @return True, if the Node.js event loop is executed by `RunEventLoop`.
  * False otherwise.
@@ -53,13 +76,29 @@ bool EventLoopIsRunning();
  * This is required in order to load scripts (e.g. `Run`) or evaluate
  * JavaScript code (e.g. `Evaluate`).
  * Additionally, Node.js will not process any pending events caused by the
- * JavaScript execution as long as `ProcessEvents` or `RunMainLoop` is
+ * JavaScript execution as long as `ProcessEvents` or `RunEventLoop` is
  * not called.
  * @param program_name The name for the Node.js application.
  * @param node_args List of arguments for the Node.js engine.
  */
 NODE_EXTERN void Initialize(const std::string& program_name = "node_lib",
                             const std::vector<std::string>& node_args = {});
+
+/**
+ * @brief Starts the Node.js engine.
+ *
+ * Starts the Node.js engine by executing bootstrap code.
+ * This is required in order to load scripts (e.g. `Run`) or evaluate
+ * JavaScript code (e.g. `Evaluate`).
+ * Additionally, Node.js will not process any pending events caused by the
+ * JavaScript execution as long as `ProcessEvents` or `RunEventLoop` is
+ * not called.
+ * @param argc The number of arguments.
+ * @param argv List of arguments for the Node.js engine,
+ * where the first argument needs to be the program name.
+ * The number of arguments must correspond to argc.
+ */
+NODE_EXTERN void Initialize(int argc, const char** argv);
 
 /**
  * @brief Stops the Node.js engine and destroys all current state.
@@ -92,9 +131,11 @@ NODE_EXTERN v8::MaybeLocal<v8::Value> Run(const std::string& path);
  *
  * Processes all currently pending events in the Node.js event loop.
  * This method returns immediately if there are no pending events.
+ * @param behavior The uv event loop behavior.
  * @return True, if more events need to be processed. False otherwise.
  */
-NODE_EXTERN bool ProcessEvents();
+NODE_EXTERN bool ProcessEvents(
+      UvLoopBehavior behavior = UvLoopBehavior::RUN_NOWAIT);
 
 /**
  * @brief Starts the execution of the Node.js event loop. Calling the given
@@ -103,12 +144,13 @@ NODE_EXTERN bool ProcessEvents();
  * Executes the Node.js event loop as long as events keep coming.
  * Once per loop execution, after events were processed, the given callback
  * is executed. The event loop can be paused by calling `StopEventLoop`.
- *
+ * @param behavior The uv event loop behavior.
  * @param callback The callback, which should be executed periodically while
  * the calling thread is blocked.
  */
-NODE_EXTERN void RunEventLoop(const std::function<void()>& callback);
-
+NODE_EXTERN void RunEventLoop(
+      const std::function<void()> & callback,
+      UvLoopBehavior behavior = UvLoopBehavior::RUN_NOWAIT);
 
 /*********************************************************
  * Stop Node.js engine

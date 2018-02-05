@@ -19,6 +19,7 @@
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+#include "node_lib.h"
 #include "node_buffer.h"
 #include "node_constants.h"
 #include "node_javascript.h"
@@ -28,7 +29,6 @@
 #include "node_revert.h"
 #include "node_debug_options.h"
 #include "node_perf.h"
-#include "node_lib.h"
 
 #if defined HAVE_PERFCTR
 #include "node_counters.h"
@@ -4799,8 +4799,8 @@ Local<Context> NewContext(Isolate* isolate,
   return context;
 }
 
-inline static bool TickEventLoop(Environment& env) {
-  uv_run(env.event_loop(), UV_RUN_NOWAIT);
+inline static bool TickEventLoop(Environment& env, node::lib::UvLoopBehavior behavior) {
+  uv_run(env.event_loop(), static_cast<uv_run_mode>(behavior));
 
   if (uv_loop_alive(env.event_loop())) {
     return true;
@@ -4859,7 +4859,7 @@ inline int Start(Isolate* isolate, IsolateData* isolate_data,
     bool more;
     PERFORMANCE_MARK(&env, LOOP_START);
     do {
-      more = TickEventLoop(env);
+      more = TickEventLoop(env, node::lib::UvLoopBehavior::RUN_DEFAULT);
     } while (more == true);
     PERFORMANCE_MARK(&env, LOOP_EXIT);
   }
@@ -5080,7 +5080,7 @@ bool _event_loop_running = false;
 v8::Isolate* _isolate = nullptr;
 Environment* _environment = nullptr;
 
-bool EventLoopIsRunning() {
+bool eventLoopIsRunning() {
   return _event_loop_running;
 }
 
@@ -5282,6 +5282,11 @@ void _StartEnv(int argc,
 
 void Initialize(const std::string& program_name,
                 const std::vector<std::string>& node_args) {
+  cmd_args = new CmdArgs(program_name, node_args);
+  Initialize(cmd_args->argc, cmd_args->argv);
+}
+
+void Initialize(int argc, const char** argv) {
   //////////
   // Start 1
   //////////
@@ -5289,11 +5294,9 @@ void Initialize(const std::string& program_name,
   PlatformInit();
   node::performance::performance_node_start = PERFORMANCE_NOW();
 
-  cmd_args = new CmdArgs(program_name, node_args);
-
   // Hack around with the argv pointer. Used for process.title = "blah --args".
   // argv won't be modified
-  uv_setup_args(cmd_args->argc, const_cast<char**>(cmd_args->argv));
+  uv_setup_args(argc, const_cast<char**>(argv));
 
   // This needs to run *before* V8::Initialize().  The const_cast is not
   // optional, in case you're wondering.
@@ -5301,7 +5304,7 @@ void Initialize(const std::string& program_name,
   // don't support these, they are not used.
   int exec_argc = 0;
   const char** exec_argv = nullptr;
-  Init(&cmd_args->argc, cmd_args->argv, &exec_argc, &exec_argv);
+  Init(&argc, argv, &exec_argc, &exec_argv);
 
   initialize::_ConfigureOpenSsl();
 
@@ -5319,8 +5322,7 @@ void Initialize(const std::string& program_name,
   // Start environment
   //////////
 
-  initialize::_StartEnv(cmd_args->argc,
-                        const_cast<const char* const*>(cmd_args->argv));
+  initialize::_StartEnv(argc, argv);
 }
 
 int Deinitialize() {
@@ -5376,7 +5378,7 @@ v8::MaybeLocal<v8::Value> Evaluate(const std::string& js_code) {
   return MaybeLocal<v8::Value>(scope.Escape(script.ToLocalChecked()->Run()));
 }
 
-void RunEventLoop(const std::function<void()>& callback) {
+void RunEventLoop(const std::function<void()>& callback, UvLoopBehavior behavior) {
   if (_event_loop_running) {
     return;  // TODO(th): return error
   }
@@ -5388,7 +5390,7 @@ void RunEventLoop(const std::function<void()>& callback) {
   _event_loop_running = true;
   request_stop = false;
   do {
-    more = ProcessEvents();
+    more = ProcessEvents(behavior);
     callback();
   } while (more && !request_stop);
   request_stop = false;
@@ -5537,8 +5539,8 @@ void StopEventLoop() {
   request_stop = true;
 }
 
-bool ProcessEvents() {
-  return TickEventLoop(*_environment);
+bool ProcessEvents(UvLoopBehavior behavior) {
+  return TickEventLoop(*_environment, behavior);
 }
 
 }  // namespace lib
