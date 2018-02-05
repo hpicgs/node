@@ -4799,25 +4799,25 @@ Local<Context> NewContext(Isolate* isolate,
   return context;
 }
 
-inline static bool TickEventLoop(Environment& env,
+inline static bool TickEventLoop(Environment* env,
                                  node::lib::UvLoopBehavior behavior) {
-  uv_run(env.event_loop(), static_cast<uv_run_mode>(behavior));
+  uv_run(env->event_loop(), static_cast<uv_run_mode>(behavior));
 
-  if (uv_loop_alive(env.event_loop())) {
+  if (uv_loop_alive(env->event_loop())) {
     return true;
   }
 
   v8_platform.DrainVMTasks();
 
-  if (uv_loop_alive(env.event_loop())) {
+  if (uv_loop_alive(env->event_loop())) {
     return true;
   }
 
-  EmitBeforeExit(&env);
+  EmitBeforeExit(env);
 
   // Emit `beforeExit` if the loop became alive either after emitting
   // event, or after running some callbacks.
-  return uv_loop_alive(env.event_loop());
+  return uv_loop_alive(env->event_loop());
 }
 
 // This is where the magic happens. Creates JavaScript context and a JS
@@ -4860,7 +4860,7 @@ inline int Start(Isolate* isolate, IsolateData* isolate_data,
     bool more;
     PERFORMANCE_MARK(&env, LOOP_START);
     do {
-      more = TickEventLoop(env, node::lib::UvLoopBehavior::RUN_DEFAULT);
+      more = TickEventLoop(&env, node::lib::UvLoopBehavior::RUN_DEFAULT);
     } while (more == true);
     PERFORMANCE_MARK(&env, LOOP_EXIT);
   }
@@ -5542,7 +5542,7 @@ void StopEventLoop() {
 }
 
 bool ProcessEvents(UvLoopBehavior behavior) {
-  return TickEventLoop(*_environment, behavior);
+  return TickEventLoop(_environment, behavior);
 }
 
 }  // namespace lib
