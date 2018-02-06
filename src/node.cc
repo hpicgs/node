@@ -5140,6 +5140,10 @@ int _StopEnv() {
   v8_platform.DrainVMTasks();
   WaitForInspectorDisconnect(_environment);
 
+  // TODO(th): delete env
+  // TODO(th): delete context scope
+  // TODO(th): delete context
+
   delete _handle_scope_wrapper;
   _handle_scope_wrapper = nullptr;
 
