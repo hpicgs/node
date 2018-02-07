@@ -5369,8 +5369,11 @@ bool ProcessEvents(UvLoopBehavior behavior) {
 }
 
 int Start(int argc, char** argv) {
-  Initialize(argc, const_cast<const char**>(argv));
+  Initialize(argc, const_cast<const char**>(argv), true);
+  SealHandleScope seal(env->isolate());
+  PERFORMANCE_MARK(&env, LOOP_START);
   RunEventLoop([] () {}, UvLoopBehavior::RUN_DEFAULT);
+  PERFORMANCE_MARK(&env, LOOP_EXIT);
   return Deinitialize();
 }
 
