@@ -4800,7 +4800,7 @@ Local<Context> NewContext(Isolate* isolate,
 }
 
 inline static bool TickEventLoop(Environment* env,
-                                 node::lib::UvLoopBehavior behavior) {
+                                 node::UvLoopBehavior behavior) {
   uv_run(env->event_loop(), static_cast<uv_run_mode>(behavior));
 
   if (uv_loop_alive(env->event_loop())) {
@@ -4860,7 +4860,7 @@ inline int Start(Isolate* isolate, IsolateData* isolate_data,
     bool more;
     PERFORMANCE_MARK(&env, LOOP_START);
     do {
-      more = TickEventLoop(&env, node::lib::UvLoopBehavior::RUN_DEFAULT);
+      more = TickEventLoop(&env, node::UvLoopBehavior::RUN_DEFAULT);
     } while (more == true);
     PERFORMANCE_MARK(&env, LOOP_EXIT);
   }
@@ -4994,8 +4994,6 @@ int Start(int argc, char** argv) {
 
   return exit_code;
 }
-
-namespace lib {
 
 /**
  * @brief The CmdArgs class is a container for argc and argv.
@@ -5528,7 +5526,7 @@ void RegisterModule(const std::string& name,
                                         v8::FunctionCallback>(module_functions);
 
   RegisterModule(name,
-                 node::lib::_RegisterModuleCallback,
+                 node::_RegisterModuleCallback,
                  const_cast<std::map<std::string,
                                      v8::FunctionCallback>*>(map_on_heap),
                  target);
@@ -5544,8 +5542,6 @@ void StopEventLoop() {
 bool ProcessEvents(UvLoopBehavior behavior) {
   return TickEventLoop(_environment, behavior);
 }
-
-}  // namespace lib
 
 }  // namespace node
 
