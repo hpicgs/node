@@ -4398,7 +4398,7 @@ inline int Start(Isolate* isolate, IsolateData* isolate_data,
 
       v8_platform.DrainVMTasks(isolate);
 
-      more = TickEventLoop(&env, node::UvLoopBehavior::RUN_DEFAULT);
+      more = uv_loop_alive(env.event_loop());
       if (more)
         continue;
 
