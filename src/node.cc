@@ -5145,6 +5145,7 @@ int _StopEnv() {
   context_scope = nullptr;
 
   if (!context.IsEmpty()) {
+    delete *context;
     context.Clear();
   }
 
