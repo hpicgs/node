@@ -5070,7 +5070,7 @@ class CmdArgs {
 
 class HandleScopeHeapWrapper {
  public:
-  HandleScopeHeapWrapper(v8::Isolate* isolate)
+  explicit HandleScopeHeapWrapper(v8::Isolate* isolate)
     : scope_(isolate) { }
  private:
   HandleScope scope_;
@@ -5146,7 +5146,7 @@ int _StopEnv() {
   delete context_scope;
   context_scope = nullptr;
 
-  delete &context; // TOOD(js): correct way to delete this?
+  delete &context;  // TOOD(js): correct way to delete this?
 
   delete isolate_data;
   isolate_data = nullptr;
@@ -5169,7 +5169,7 @@ void _DeleteIsolate() {
   node_isolate = nullptr;
   _isolate->Dispose();
 
-  delete &params; // TODO(js): correct way to delete this?
+  delete &params;  // TODO(js): correct way to delete this?
 
   delete allocator;
   allocator = nullptr;
