@@ -10,7 +10,7 @@
 #include "uv.h"
 #include "node.h"
 
-namespace node { namespace lib {
+namespace node {
 
 namespace internal {  // internals, provided for experienced users
 
@@ -320,8 +320,6 @@ NODE_EXTERN v8::MaybeLocal<v8::Value> Call(
     v8::Local<v8::Object> receiver,
     v8::Local<v8::Function> function,
     std::initializer_list<v8::Local<v8::Value>> args);
-}  // namespace lib
-
 }  // namespace node
 
 
