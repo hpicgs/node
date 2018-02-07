@@ -36,15 +36,6 @@ Environment* environment();
 
 }  // namespace internal
 
-namespace initialize { // initialization
-
-void initV8();
-void createIsolate(v8::Isolate::CreateParams params);
-void createInitialEnvironment();
-void configureOpenSsl();
-
-} // namespace initialize
-
 /**
  * @brief Configures the uv loop behavior, which is used within the Node.js
  * event loop.
