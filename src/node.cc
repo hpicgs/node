@@ -5146,7 +5146,7 @@ int _StopEnv() {
   delete context_scope;
   context_scope = nullptr;
 
-  context->Dispose();
+  delete &context; // TOOD(js): correct way to delete this?
 
   delete isolate_data;
   isolate_data = nullptr;
@@ -5169,7 +5169,7 @@ void _DeleteIsolate() {
   node_isolate = nullptr;
   _isolate->Dispose();
 
-  params.Dispose();
+  delete &params; // TODO(js): correct way to delete this?
 
   delete allocator;
   allocator = nullptr;
