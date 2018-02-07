@@ -4684,7 +4684,11 @@ int _StopEnv() {
   uv_key_delete(&thread_local_env);
 
   v8_platform.DrainVMTasks(_environment->isolate());
+  v8_platform.CancelVMTasks(_environment->isolate());
   WaitForInspectorDisconnect(_environment);
+#if defined(LEAK_SANITIZER)
+  __lsan_do_leak_check();
+#endif
 
   return exit_code;
 }
@@ -4750,10 +4754,6 @@ void _CreateIsolate() {
   _isolate->SetAutorunMicrotasks(false);
   _isolate->SetFatalErrorHandler(OnFatalError);
 
-  if (track_heap_objects) {
-    _isolate->GetHeapProfiler()->StartTrackingHeapObjects(true);
-  }
-
   {
     Mutex::ScopedLock scoped_lock(node_isolate_mutex);
     CHECK_EQ(node_isolate, nullptr);
@@ -4767,7 +4767,16 @@ void _CreateInitialEnvironment() {
   // TODO(jh): Once we write a Deinit(), we need to put this on the heap
   // to call the deconstructor.
   static HandleScope handle_scope(_isolate);
-  isolate_data = new IsolateData(_isolate, uv_default_loop(), nullptr);
+
+  isolate_data = new IsolateData(
+      _isolate,
+      uv_default_loop(),
+      v8_platform.Platform(),
+      allocator->zero_fill_field());
+
+  if (track_heap_objects) {
+    _isolate->GetHeapProfiler()->StartTrackingHeapObjects(true);
+  }
 
   //////////
   // Start 3
@@ -4801,11 +4810,11 @@ void _ConfigureOpenSsl() {
 }
 
 void _StartEnv(int argc,
-               const char* const* argv) {
+               const char* const* argv,
+               int v8_argc,
+               const char* const* v8_argv) {
   std::cout << "Starting environment" << std::endl;
 
-  int v8_argc = 0;
-  const char* const* v8_argv = nullptr;
   _environment->Start(argc, argv, v8_argc, v8_argv, v8_is_profiling);
 
   const char* path = argc > 1 ? argv[1] : nullptr;
@@ -4877,7 +4886,7 @@ void Initialize(int argc, const char** argv) {
   // Start environment
   //////////
 
-  initialize::_StartEnv(argc, argv);
+  initialize::_StartEnv(argc, argv, exec_argc, exec_argv);
 }
 
 int Deinitialize() {
