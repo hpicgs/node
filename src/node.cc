@@ -5140,12 +5140,25 @@ int _StopEnv() {
   v8_platform.DrainVMTasks();
   WaitForInspectorDisconnect(_environment);
 
-  // TODO(th): delete env
-  // TODO(th): delete context scope
-  // TODO(th): delete context
+  delete _environment;
+  _environment = nullptr;
+
+  delete context_scope;
+  context_scope = nullptr;
+
+  context->Dispose();
+
+  delete isolate_data;
+  isolate_data = nullptr;
 
   delete _handle_scope_wrapper;
   _handle_scope_wrapper = nullptr;
+
+  delete isolate_scope;
+  isolate_scope = nullptr;
+
+  delete locker;
+  locker = nullptr;
 
   return exit_code;
 }
@@ -5155,6 +5168,11 @@ void _DeleteIsolate() {
   CHECK_EQ(node_isolate, _isolate);
   node_isolate = nullptr;
   _isolate->Dispose();
+
+  params.Dispose();
+
+  delete allocator;
+  allocator = nullptr;
 }
 
 void _DeinitV8() {
@@ -5354,6 +5372,8 @@ int Deinitialize() {
   deinitialize::_DeleteIsolate();
 
   deinitialize::_DeinitV8();
+
+  // TODO(js): do we need to tear down OpenSsl?
 
   deinitialize::_DeleteCmdArgs();
 
