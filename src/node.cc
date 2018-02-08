@@ -3786,7 +3786,7 @@ static void RawDebug(const FunctionCallbackInfo<Value>& args) {
   fflush(stderr);
 }
 
-void LoadEnvironment(Environment* env) {
+void LoadEnvironment(Environment* env, bool allow_repl) {
   HandleScope handle_scope(env->isolate());
 
   TryCatch try_catch(env->isolate());
@@ -3848,6 +3848,10 @@ void LoadEnvironment(Environment* env) {
   // who do not like how bootstrap_node.js sets up the module system but do
   // like Node's I/O bindings may want to replace 'f' with their own function.
   Local<Value> arg = env->process_object();
+  Local<Object> process_object = env->process_object();
+  process_object->Set(env->context(),
+                      String::NewFromUtf8(env->isolate(), "allow_repl"),
+                      Boolean::New(env->isolate(), allow_repl));
 
   auto ret = f->Call(env->context(), Null(env->isolate()), 1, &arg);
   // If there was an error during bootstrap then it was either handled by the
@@ -5070,7 +5074,8 @@ void _ConfigureOpenSsl() {
 }
 
 void _StartEnv(int argc,
-               const char* const* argv) {
+               const char* const* argv,
+               bool allow_repl) {
   std::cout << "Starting environment" << std::endl;
 
   int v8_argc = 0;
@@ -5095,7 +5100,7 @@ void _StartEnv(int argc,
   {
     Environment::AsyncCallbackScope callback_scope(_environment);
     _environment->async_hooks()->push_async_ids(1, 0);
-    LoadEnvironment(_environment);
+    LoadEnvironment(_environment, allow_repl);
     _environment->async_hooks()->pop_async_id(1);
   }
 
@@ -5105,12 +5110,13 @@ void _StartEnv(int argc,
 }  // namespace initialize
 
 void Initialize(const std::string& program_name,
-                const std::vector<std::string>& node_args) {
+                const std::vector<std::string>& node_args,
+                bool allow_repl) {
   cmd_args = new CmdArgs(program_name, node_args);
-  Initialize(cmd_args->argc, cmd_args->argv);
+  Initialize(cmd_args->argc, cmd_args->argv, allow_repl);
 }
 
-void Initialize(int argc, const char** argv) {
+void Initialize(int argc, const char** argv, bool allow_repl) {
   //////////
   // Start 1
   //////////
@@ -5146,7 +5152,7 @@ void Initialize(int argc, const char** argv) {
   // Start environment
   //////////
 
-  initialize::_StartEnv(argc, argv);
+  initialize::_StartEnv(argc, argv, allow_repl);
 }
 
 int Deinitialize() {
