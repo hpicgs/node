@@ -5108,6 +5108,15 @@ bool ProcessEvents(UvLoopBehavior behavior) {
   return TickEventLoop(_environment, behavior);
 }
 
+int Start(int argc, char** argv) {
+  Initialize(argc, const_cast<const char**>(argv));
+  SealHandleScope seal(_environment->isolate());
+  PERFORMANCE_MARK(_environment, LOOP_START);
+  RunEventLoop([] () {}, UvLoopBehavior::RUN_DEFAULT);
+  PERFORMANCE_MARK(_environment, LOOP_EXIT);
+  return Deinitialize();
+}
+
 }  // namespace node
 
 #if !HAVE_INSPECTOR
