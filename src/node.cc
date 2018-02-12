@@ -5066,6 +5066,14 @@ class CmdArgs {
   std::vector<const char*> argument_pointers_;
 };
 
+class HandleScopeHeapWrapper {
+ public:
+  explicit HandleScopeHeapWrapper(v8::Isolate* isolate)
+    : scope_(isolate) { }
+ private:
+  HandleScope scope_;
+};
+
 ArrayBufferAllocator* allocator;
 Isolate::CreateParams params;
 Locker* locker;
@@ -5078,6 +5086,7 @@ CmdArgs* cmd_args = nullptr;
 bool _event_loop_running = false;
 v8::Isolate* _isolate = nullptr;
 Environment* _environment = nullptr;
+HandleScopeHeapWrapper* _handle_scope_wrapper = nullptr;
 
 bool eventLoopIsRunning() {
   return _event_loop_running;
@@ -5129,6 +5138,29 @@ int _StopEnv() {
   v8_platform.DrainVMTasks();
   WaitForInspectorDisconnect(_environment);
 
+  delete _environment;
+  _environment = nullptr;
+
+  delete context_scope;
+  context_scope = nullptr;
+
+  if (!context.IsEmpty()) {
+    delete *context;
+    context.Clear();
+  }
+
+  delete isolate_data;
+  isolate_data = nullptr;
+
+  delete _handle_scope_wrapper;
+  _handle_scope_wrapper = nullptr;
+
+  delete isolate_scope;
+  isolate_scope = nullptr;
+
+  delete locker;
+  locker = nullptr;
+
   return exit_code;
 }
 
@@ -5137,6 +5169,9 @@ void _DeleteIsolate() {
   CHECK_EQ(node_isolate, _isolate);
   node_isolate = nullptr;
   _isolate->Dispose();
+
+  delete allocator;
+  allocator = nullptr;
 }
 
 void _DeinitV8() {
@@ -5207,9 +5242,7 @@ void _CreateIsolate() {
 void _CreateInitialEnvironment() {
   locker = new Locker(_isolate);
   isolate_scope = new Isolate::Scope(_isolate);
-  // TODO(jh): Once we write a Deinit(), we need to put this on the heap
-  // to call the deconstructor.
-  static HandleScope handle_scope(_isolate);
+  _handle_scope_wrapper = new HandleScopeHeapWrapper(_isolate);
   isolate_data = new IsolateData(_isolate, uv_default_loop(),
                                  allocator->zero_fill_field());
 
@@ -5338,6 +5371,8 @@ int Deinitialize() {
   deinitialize::_DeleteIsolate();
 
   deinitialize::_DeinitV8();
+
+  // TODO(js): do we need to tear down OpenSsl?
 
   deinitialize::_DeleteCmdArgs();
 
