@@ -1,4 +1,4 @@
-## How to use Node.js as a C++ library
+## How to use Node.js as a shared library
 ### Handling the Node.js event loop
 There are two different ways of handling the Node.js event loop.
 #### C++ keeps control over thread
@@ -42,5 +42,182 @@ auto result = node::lib::Call(fs, "existsSync", {v8::String::NewFromUtf8(isolate
 
 auto file_exists = v8::Local<v8::Boolean>::Cast(result)->BooleanValue();
 std::cout << (file_exists ? "cli.js exists in cwd" : "cli.js does NOT exist in cwd") << std::endl;
+
+```
+
+#### (4) Advanced!!
+
+The following example demonstrates the usage of Node.js as a library by using the request and the feedreader module from NPM.
+
+##### RssFeed.h
+```C++
+#pragma once
+
+#include <QObject>
+#include "node.h"
+
+/**
+ * @brief The RssFeed class retrieves an RSS feed from the Internet and provides its entries.
+ */
+class RssFeed : public QObject {
+    Q_OBJECT
+    Q_PROPERTY(QStringList entries READ getEntries NOTIFY entriesChanged)
+
+public:
+    explicit RssFeed(QObject* parent=nullptr);
+    static void clearFeed(const v8::FunctionCallbackInfo<v8::Value>& args);
+    static void cppLog(const v8::FunctionCallbackInfo<v8::Value>& args);
+    static RssFeed& getInstance();
+    static void redrawGUI(const v8::FunctionCallbackInfo<v8::Value>& args);
+    Q_INVOKABLE static void refreshFeed();
+
+private:
+    static RssFeed* instance;
+    QStringList entries;
+
+signals:
+    void entriesChanged();
+
+public slots:
+    /**
+     * @brief getEntries returns the entries of the RSS feed
+     * @return a list of text entries
+     */
+    QStringList getEntries() const;
+};
+```
+
+##### RssFeed.cpp
+```C++
+#include "RssFeed.h"
+
+#include <iostream>
+#include <QGuiApplication>
+#include "node_lib.h"
+
+RssFeed* RssFeed::instance = nullptr;
+
+RssFeed::RssFeed(QObject* parent)
+    : QObject(parent)
+{
+   
+}
+
+RssFeed& RssFeed::getInstance(){
+    if (instance == nullptr){
+        instance = new RssFeed();
+    }
+    return *instance;
+}
+
+QStringList RssFeed::getEntries() const {
+    return entries;
+}
+
+void RssFeed::clearFeed(const v8::FunctionCallbackInfo<v8::Value>& args) {
+    getInstance().entries.clear();
+}
+
+void RssFeed::redrawGUI(const v8::FunctionCallbackInfo<v8::Value>& args) {
+    emit getInstance().entriesChanged();
+}
+
+void RssFeed::refreshFeed() {
+    node::Evaluate("emitRequest()");
+    node::RunEventLoop([](){ QGuiApplication::processEvents(); });
+}
+
+void RssFeed::displayFeed(const v8::FunctionCallbackInfo<v8::Value>& args){
+    v8::Isolate* isolate = args.GetIsolate();
+    if (args.Length() < 1 || !args[0]->IsObject()) {
+        isolate->ThrowException(v8::Exception::TypeError(
+        v8::String::NewFromUtf8(isolate, "Error: One object expected")));
+        return;
+    }
+
+    v8::Local<v8::Context> context = isolate->GetCurrentContext();
+    v8::Local<v8::Object> obj = args[0]->ToObject(context).ToLocalChecked();
+    v8::Local<v8::Array> props = obj->GetOwnPropertyNames(context).ToLocalChecked();
+
+    for (int i = 0, l = props->Length(); i < l; i++) {
+        v8::Local<v8::Value> localKey = props->Get(i);
+        v8::Local<v8::Value> localVal = obj->Get(context, localKey).ToLocalChecked();
+        std::string key = *v8::String::Utf8Value(localKey);
+        std::string val = *v8::String::Utf8Value(localVal);
+        getInstance().entries << QString::fromStdString(val);
+    }
+}
+```
+
+##### main.cpp
+```C++
+#include <iostream>
+#include <thread>
+#include <chrono>
+
+#include <QDebug>
+#include <QGuiApplication>
+#include <QQmlApplicationEngine>
+#include <QQmlContext>
+#include <QTimer>
+
+#include <cpplocate/cpplocate.h>
+
+#include "node.h"
+#include "node_lib.h"
+
+#include "RssFeed.h"
+
+int main(int argc, char* argv[]) {
+    const std::string js_file = "data/node-lib-qt-rss.js";
+    const std::string data_path = cpplocate::locatePath(js_file);
+    const std::string js_path = data_path + "/" + js_file;
+
+    QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
+    QGuiApplication app(argc, argv);
+    QQmlApplicationEngine engine;
+
+    // to be able to access the public slots of the RssFeed instance
+    // we inject a pointer to it in the QML context:
+    engine.rootContext()->setContextProperty("rssFeed", &RssFeed::getInstance());
+
+    engine.load(QUrl(QLatin1String("qrc:/main.qml")));
+
+    node::lib::Initialize();
+    node::lib::RegisterModule("cpp-qt-gui", {
+                                {"refreshFeed", RssFeed::refreshFeed},
+                                {"clearFeed", RssFeed::clearFeed},
+                                {"redrawGUI", RssFeed::redrawGUI},
+                              }, "cppQtGui");
+    node::Run(js_path);
+    RssFeed::refreshFeed();
+    app.exec();
+    node::Deinitialize();
+}
+```
+
+```JS
+var emitRequest = function () {
+  console.log("Refreshing feeds...")
+  var req = request('http://feeds.bbci.co.uk/news/world/rss.xml')
+
+  req.on('error', function (error) {
+    // handle any request errors
+  });
+
+  req.on('response', function (res) {
+    cppQtGui.redrawGUI();
+    
+    var stream = this; // `this` is `req`, which is a stream
+  
+    if (res.statusCode !== 200) {
+      this.emit('error', new Error('Bad status code'));
+    }
+    else {
+      cppQtGui.clearFeed();
+      stream.pipe(feedparser);
+    }
+  });
+}
 
 ```
