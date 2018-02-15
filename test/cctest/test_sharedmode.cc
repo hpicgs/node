@@ -9,9 +9,9 @@
 // class SharedModeTest : public NodeTestFixture { };
 
 TEST(SharedModeTest, MyFirstTest) {
-  EXPECT_EQ(nullptr, node::lib::internal::environment());
-  EXPECT_EQ(nullptr, node::lib::internal::isolate());
-  node::lib::Initialize();
-  EXPECT_NE(nullptr, node::lib::internal::environment());  
-  EXPECT_NE(nullptr, node::lib::internal::isolate());
+  EXPECT_EQ(nullptr, node::internal::environment());
+  EXPECT_EQ(nullptr, node::internal::isolate());
+  node::Initialize();
+  EXPECT_NE(nullptr, node::internal::environment());  
+  EXPECT_NE(nullptr, node::internal::isolate());
 }
