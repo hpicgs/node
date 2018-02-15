@@ -9,7 +9,7 @@ By calling `node::RunEventLoop(callback)`, the C++ host program gives up the con
 
 ### Examples
 
-In the following, a few examples demonstrate the usage of Node.js as rary. For more complex examples, including handling of the event loop, see the [node-embed](https://github.com/hpicgs/node-embed) repository.
+In the following, a few examples demonstrate the usage of Node.js as a library. For more complex examples, including handling of the event loop, see the [node-embed](https://github.com/hpicgs/node-embed) repository.
 
 #### (1) Evaluating in-line JavaScript code
 This example evaluates multiple lines of JavaScript code in the global Node context. The result of `console.log` is piped to the stdout.
@@ -46,7 +46,7 @@ std::cout << (file_exists ? "cli.js exists in cwd" : "cli.js does NOT exist in c
 ```
 
 #### (4) Advanced: Combining a Qt GUI with Node.js
-This example, which is borrowed from the examples repository [node-embed](https://github.com/hpicgs/node-embed), fetches an RSS feed from the BBC and displays it in a Qt GUI. For this, the feedreader and request modules from NPM are utilized. 
+This example, which is borrowed from the examples repository [node-embed](https://github.com/hpicgs/node-embed), fetches an RSS feed from the BBC and displays it in a Qt GUI. For this, the `feedparser` and `request` modules from NPM are utilized.
 
 ##### main.cpp
 ```C++
