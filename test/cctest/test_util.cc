@@ -2,8 +2,24 @@
 #include "util-inl.h"
 
 #include "gtest/gtest.h"
+// #include "node_lib.h"
+
+
+
+TEST(UtilTest, MyFirstTest) {
+  EXPECT_TRUE(false);
+
+  // EXPECT_EQ(nullptr, node::lib::internal::environment());
+  // EXPECT_EQ(nullptr, node::lib::internal::isolate());
+  // node::lib::Initialize();
+  // EXPECT_NE(nullptr, node::lib::internal::environment());  
+  // EXPECT_NE(nullptr, node::lib::internal::isolate());
+}
+
 
 TEST(UtilTest, ListHead) {
+  EXPECT_TRUE(false);
+  
   struct Item { node::ListNode<Item> node_; };
   typedef node::ListHead<Item, &Item::node_> List;
 
