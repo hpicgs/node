@@ -70,17 +70,17 @@ This example, which is borrowed from the examples repository [node-embed](https:
 #include "RssFeed.h"
 
 int main(int argc, char* argv[]) {
-    // locate the JavaScript file we want to embed
+    // Locate the JavaScript file we want to embed
     const std::string js_file = "data/node-lib-qt-rss.js";
     const std::string data_path = cpplocate::locatePath(js_file);
     const std::string js_path = data_path + "/" + js_file;
 
-    // initialize QT
+    // Initialize Qt
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
     QGuiApplication app(argc, argv);
     QQmlApplicationEngine engine;
 
-    // to be able to access the public slots of the RssFeed instance
+    // To be able to access the public slots of the RssFeed instance,
     // we inject a pointer to it in the QML context:
     engine.rootContext()->setContextProperty("rssFeed", &RssFeed::getInstance());
 
