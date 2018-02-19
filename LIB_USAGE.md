@@ -1,39 +1,41 @@
-## How to use Node.js as a shared library
-### Handling the Node.js event loop
+# How to use Node.js as a shared library
+## Limitations
+* It is only possible to access Node.js from the same thread (no multi-threading).
+* There can only be one Node.js per process at the same time.
+
+## Handling the Node.js event loop
 There are two different ways of handling the Node.js event loop.
-#### C++ keeps control over thread
+### C++ keeps control over thread
 By calling `node::ProcessEvents()`, the Node.js event loop will be run once, handling the next pending event. The return value of the call specifies whether there are more events in the queue.
 
-#### C++ gives control of the thread to Node.js
+### C++ gives control of the thread to Node.js
 By calling `node::RunEventLoop(callback)`, the C++ host program gives up the control of the thread and allows the Node.js event loop to run until no more events are in the queue or `node::StopEventLoop()` is called. The `callback` parameter in the `RunEventLoop` function is called once per iteration of the event loop. This allows the C++ programmer to react to changes in the Node.js state and e.g. terminate Node.js preemptively.
 
-### Examples
-
+## Examples
 In the following, a few examples demonstrate the usage of Node.js as a library. For more complex examples, including handling of the event loop, see the [node-embed](https://github.com/hpicgs/node-embed) repository.
 
-#### (1) Evaluating in-line JavaScript code
+### (1) Evaluating in-line JavaScript code
 This example evaluates multiple lines of JavaScript code in the global Node.js context. The result of `console.log` is piped to stdout.
 
 ```C++
-node::Initialize("example01");
+node::Initialize();
 node::Evaluate("var helloMessage = 'Hello from Node.js!';");
 node::Evaluate("console.log(helloMessage);");
 ```
 
-#### (2) Running a JavaScript file
+### (2) Running a JavaScript file
 This example evaluates a JavaScript file and lets Node handle all pending events until the event loop is empty.
 
 ```C++
-node::Initialize("example02");
+node::Initialize();
 node::Run("cli.js");
 while (node::ProcessEvents()) { }
 ``` 
 
-
-#### (3) Including an NPM Module
+### (3) Including an NPM Module
 This example uses the [fs](https://nodejs.org/api/fs.html) module to check whether a specific file exists.
 ```C++
-node::Initialize("example03");
+node::Initialize();
 auto fs = node::IncludeModule("fs");
 v8::Isolate *isolate = node::internal::isolate();
 
@@ -45,10 +47,10 @@ std::cout << (file_exists ? "file.txt exists in cwd" : "file.txt does NOT exist 
 
 ```
 
-#### (4) Advanced: Combining a Qt GUI with Node.js
+### (4) Advanced: Combining a Qt GUI with Node.js
 This example, which is borrowed from the examples repository [node-embed](https://github.com/hpicgs/node-embed), fetches a RSS feed from the BBC and displays it in a Qt GUI. For this, the `feedparser` and `request` modules from NPM are utilized.
 
-##### main.cpp
+#### main.cpp
 ```C++
 #include <iostream>
 #include <thread>
@@ -68,7 +70,6 @@ This example, which is borrowed from the examples repository [node-embed](https:
 #include "RssFeed.h"
 
 int main(int argc, char* argv[]) {
-
     // locate the JavaScript file we want to embed
     const std::string js_file = "data/node-lib-qt-rss.js";
     const std::string data_path = cpplocate::locatePath(js_file);
@@ -110,7 +111,7 @@ int main(int argc, char* argv[]) {
 }
 ```
 
-##### RssFeed.h
+#### RssFeed.h
 ```C++
 #pragma once
 
@@ -185,7 +186,7 @@ public slots:
 };
 ```
 
-##### RssFeed.cpp
+#### RssFeed.cpp
 ```C++
 #include "RssFeed.h"
 
@@ -201,8 +202,8 @@ RssFeed::RssFeed(QObject* parent)
    
 }
 
-RssFeed& RssFeed::getInstance(){
-    if (instance == nullptr){
+RssFeed& RssFeed::getInstance() {
+    if (instance == nullptr) {
         instance = new RssFeed();
     }
     return *instance;
@@ -230,7 +231,6 @@ void RssFeed::refreshFeed() {
 }
 
 void RssFeed::appendFeed(const v8::FunctionCallbackInfo<v8::Value>& args) {
-
     // check, whether this method was called as expected
     // therefore, we need to make sure, that the first argument exists
     // and that it is an object
@@ -262,14 +262,14 @@ void RssFeed::appendFeed(const v8::FunctionCallbackInfo<v8::Value>& args) {
 #### node-lib-qt-rss.js
 ```JS
 var FeedParser = require('feedparser');
-var request = require('request'); // for fetching the feed
+var request = require('request');
 
 var emitRequest = function () {
   var feedparser = new FeedParser([]);  
-  var req = request('http://feeds.bbci.co.uk/news/world/rss.xml')
+  var req = request('http://feeds.bbci.co.uk/news/world/rss.xml');
 
   req.on('error', function (error) {
-    // handle any request errors
+    // catch all request errors but don't handle them
   });
 
   req.on('response', function (res) {
@@ -289,9 +289,7 @@ var emitRequest = function () {
   });
   
   feedparser.on('readable', function () {
-    // This is where the action is!
-    var stream = this; // `this` is `feedparser`, which is a stream
-    var meta = this.meta; // **NOTE** the "meta" is always available in the context of the feedparser instance
+    var stream = this;
     var item;
   
     var itemString = '';
