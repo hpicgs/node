@@ -52,15 +52,14 @@ This example, which is borrowed from the examples repository [node-embed](https:
 
 #### main.cpp
 ```C++
+#include <chrono>
 #include <iostream>
 #include <thread>
-#include <chrono>
 
 #include <QDebug>
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
-#include <QTimer>
 
 #include <cpplocate/cpplocate.h>
 
@@ -70,45 +69,45 @@ This example, which is borrowed from the examples repository [node-embed](https:
 #include "RssFeed.h"
 
 int main(int argc, char* argv[]) {
-    // Locate the JavaScript file we want to embed
-    const std::string js_file = "data/node-lib-qt-rss.js";
-    const std::string data_path = cpplocate::locatePath(js_file);
-    const std::string js_path = data_path + "/" + js_file;
+  // Locate the JavaScript file we want to embed:
+  const std::string js_file = "data/node-lib-qt-rss.js";
+  const std::string data_path = cpplocate::locatePath(js_file);
+  const std::string js_path = data_path + "/" + js_file;
 
-    // Initialize Qt
-    QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
-    QGuiApplication app(argc, argv);
-    QQmlApplicationEngine engine;
+  // Initialize Qt:
+  QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
+  QGuiApplication app(argc, argv);
+  QQmlApplicationEngine engine;
 
-    // To be able to access the public slots of the RssFeed instance,
-    // we inject a pointer to it in the QML context:
-    engine.rootContext()->setContextProperty("rssFeed", &RssFeed::getInstance());
+  // to be able to access the public slots of the RssFeed instance
+  // we inject a pointer to it in the QML context:
+  engine.rootContext()->setContextProperty("rssFeed", &RssFeed::getInstance());
 
-    engine.load(QUrl(QLatin1String("qrc:/main.qml")));
+  engine.load(QUrl(QLatin1String("qrc:/main.qml")));
 
-    // Initialize Node.js engine
-    node::Initialize();
+  // Initialize Node.js engine:
+  node::Initialize();
 
-    // Register C++ methods to be used within JavaScript
-    // The third parameter binds the C++ module to that name,
-    // allowing the functions to be called like this: "cppQtGui.appendFeed(...)"
-    node::RegisterModule("cpp-qt-gui", {
-                                {"appendFeed", RssFeed::appendFeed},
-                                {"clearFeed", RssFeed::clearFeed},
-                                {"redrawGUI", RssFeed::redrawGUI},
-                            }, "cppQtGui");
+  // Register C++ methods to be used within JavaScript
+  // The third parameter binds the C++ module to that name,
+  // allowing the functions to be called like this: "cppQtGui.clearFeed(...)"
+  node::RegisterModule("cpp-qt-gui", {
+                         {"addFeedItem", RssFeed::addFeedItem},
+                         {"clearFeed", RssFeed::clearFeed},
+                         {"redraw", RssFeed::redrawGUI},
+                       }, "cppQtGui");
 
-    // Evaluate a JavaScript file once
-    node::Run(js_path);
+  // Evaluate the JavaScript file once:
+  node::Run(js_path);
 
-    // Load RSS feeds to display them
-    RssFeed::refreshFeed();
+  // Load intial RSS feed to display it:
+  RssFeed::refreshFeed();
 
-    // Run the Qt application
-    app.exec();
+  // Run the Qt application:
+  app.exec();
 
-    // After we are done, deinitialize the Node.js engine
-    node::Deinitialize();
+  // After we are done, deinitialize the Node.js engine:
+  node::Deinitialize();
 }
 ```
 
@@ -120,70 +119,79 @@ int main(int argc, char* argv[]) {
 #include "node.h"
 
 /**
- * @brief The RssFeed class retrieves an RSS feed from the internet and provides its entries.
+ * @brief The RssFeed class retrieves an RSS feed from the Internet and
+ * provides its entries.
  */
 class RssFeed : public QObject {
-    Q_OBJECT
-    Q_PROPERTY(QStringList entries READ getEntries NOTIFY entriesChanged)
 
-public:
-    /**
-     * @brief Creates a new RssFeed with a given QObject as its parent.
-     *
-     * @param parent The parent object.
-     */
-    explicit RssFeed(QObject* parent=nullptr);
+  Q_OBJECT
 
-    /**
-     * @brief Returns the singleton instance for this class.
-     *
-     * @return The singlton instance for this class.
-     */
-    static RssFeed& getInstance();
-
-    /**
-     * @brief This method is called from the embedded JavaScript. 
-     * It is used for clearing the currently displayed RSS feeds on the GUI.
-     *
-     * @param args The arguments passed from the embedded JavaScript. 
-     * Hint: This method does not expect any arguments.
-     */
-    static void clearFeed(const v8::FunctionCallbackInfo<v8::Value>& args);
-
-    /**
-     * @brief This method is called from the embedded JavaScript.
-     * It is used to append given RSS feeds to the list of RSS feeds.
-     *
-     * @param args The arguments passed from the embedded JavaScript.
-     * Hint: This method expects an object, which contains the RSS feed.
-     */
-    static void appendFeed(const v8::FunctionCallbackInfo<v8::Value>& args);
-
-    /**
-     * @brief This method is called from the embedded JavaScript.
-     * It is used to refresh the GUI, after all retrieved RSS feeds have been appended.
-     *
-     * @param args The arguments passed from the embedded JavaScript.
-     * Hint: This method does not expect any arguments.
-     */
-    static void redrawGUI(const v8::FunctionCallbackInfo<v8::Value>& args);
-
-    Q_INVOKABLE static void refreshFeed();
+  Q_PROPERTY(QStringList entries READ getEntries NOTIFY entriesChanged)
 
 private:
-    static RssFeed* instance;   /*!< The singleton instance for this class. */
-    QStringList entries;        /*!< The list of RSS feeds to display. */
+  /**
+   * @brief Creates a new RssFeed with a given QObject as its parent.
+   *
+   * @param parent The parent object.
+   */
+  explicit RssFeed(QObject* parent=nullptr);
+
+public:
+  /**
+   * @brief Returns the singleton instance for this class.
+   *
+   * @return The singlton instance for this class.
+   */
+  static RssFeed& getInstance();
+
+  /**
+   * @brief This method is called from the embedded JavaScript.
+   * It is used for deleting all items from this RSS feed.
+   *
+   * @param args The arguments passed from the embedded JavaScript.
+   * Hint: This method does not expect any arguments.
+   */
+  static void clearFeed(const v8::FunctionCallbackInfo<v8::Value>& args);
+
+  /**
+   * @brief This method is called from the embedded JavaScript.
+   * It is used to add an entry to this RSS feed.
+   *
+   * @param args The arguments passed from the embedded JavaScript.
+   * Hint: This method expects an object, which contains the RSS feed item.
+   */
+  static void addFeedItem(const v8::FunctionCallbackInfo<v8::Value>& args);
+
+  /**
+   * @brief This method is called from the embedded JavaScript.
+   * It is used to refresh the GUI, after all retrieved feed items have been
+   * appended.
+   *
+   * @param args The arguments passed from the embedded JavaScript.
+   * Hint: This method does not expect any arguments.
+   */
+  static void redrawGUI(const v8::FunctionCallbackInfo<v8::Value>& args);
+
+  /**
+   * @brief This method updates the feed by calling a JS function
+   * and running the Node.js main loop until the whole feed was received.
+   */
+  Q_INVOKABLE static void refreshFeed();
+
+private:
+  static RssFeed* instance;   /*!< The singleton instance for this class. */
+  QStringList entries;        /*!< The list of RSS feeds to display. */
 
 signals:
-    void entriesChanged();
+  void entriesChanged();      /*!< Emitted after entries were added or removed. */
 
 public slots:
-    /**
-     * @brief getEntries returns the entries of the RSS feed
-     *
-     * @return a list of text entries
-     */
-    QStringList getEntries() const;
+  /**
+   * @brief getEntries returns the entries of the RSS feed
+   *
+   * @return a list of text entries
+   */
+  QStringList getEntries() const;
 };
 ```
 
@@ -198,84 +206,85 @@ public slots:
 RssFeed* RssFeed::instance = nullptr;
 
 RssFeed::RssFeed(QObject* parent)
-    : QObject(parent)
+  : QObject(parent)
 {
-   
+
 }
 
-RssFeed& RssFeed::getInstance() {
-    if (instance == nullptr) {
-        instance = new RssFeed();
-    }
-    return *instance;
+RssFeed& RssFeed::getInstance(){
+  if (instance == nullptr){
+    instance = new RssFeed();
+  }
+  return *instance;
 }
 
 QStringList RssFeed::getEntries() const {
-    return entries;
+  return entries;
 }
 
 void RssFeed::clearFeed(const v8::FunctionCallbackInfo<v8::Value>& args) {
-    getInstance().entries.clear();
+  getInstance().entries.clear();
 }
 
 void RssFeed::redrawGUI(const v8::FunctionCallbackInfo<v8::Value>& args) {
-    emit getInstance().entriesChanged();
+  emit getInstance().entriesChanged();
 }
 
 void RssFeed::refreshFeed() {
-    // invoke the embedded JavaScript in order to fetch new RSS feeds
-    node::Evaluate("emitRequest()");
+  // invoke the embedded JavaScript in order to fetch new RSS feeds:
+  node::Evaluate("emitRequest()");
 
-    // wait for the embedded JavaScript to finish its execution
-    // meanwhile, process any QT events
-    node::RunEventLoop([](){ QGuiApplication::processEvents(); });
+  // wait for the embedded JavaScript to finish its execution
+  // meanwhile, process any QT events
+  node::RunEventLoop([](){ QGuiApplication::processEvents(); });
 }
 
-void RssFeed::appendFeed(const v8::FunctionCallbackInfo<v8::Value>& args) {
-    // check, whether this method was called as expected
-    // therefore, we need to make sure, that the first argument exists
-    // and that it is an object
-    v8::Isolate* isolate = args.GetIsolate();
-    if (args.Length() < 1 || !args[0]->IsObject()) {
-        isolate->ThrowException(v8::Exception::TypeError(
-        v8::String::NewFromUtf8(isolate, "Error: One object expected")));
-        return;
-    }
+void RssFeed::addFeedItem(const v8::FunctionCallbackInfo<v8::Value>& args) {
+  // check, whether this method was called as expected
+  // therefore, we need to make sure, that the first argument exists
+  // and that it is an object
+  v8::Isolate* isolate = args.GetIsolate();
+  if (args.Length() < 1 || !args[0]->IsObject()) {
+    isolate->ThrowException(v8::Exception::TypeError(
+                              v8::String::NewFromUtf8(isolate, "Error: One object expected")));
+    return;
+  }
 
-    v8::Local<v8::Context> context = isolate->GetCurrentContext();
-    v8::Local<v8::Object> obj = args[0]->ToObject(context).ToLocalChecked();
+  v8::Local<v8::Context> context = isolate->GetCurrentContext();
+  v8::Local<v8::Object> obj = args[0]->ToObject(context).ToLocalChecked();
 
-    // we want to get all properties of our input object
-    v8::Local<v8::Array> props = obj->GetOwnPropertyNames(context).ToLocalChecked();
+  // we want to get all properties of our input object:
+  v8::Local<v8::Array> props = obj->GetOwnPropertyNames(context).ToLocalChecked();
 
-    for (int i = 0, l = props->Length(); i < l; i++) {
-        v8::Local<v8::Value> localKey = props->Get(i);
-        v8::Local<v8::Value> localVal = obj->Get(context, localKey).ToLocalChecked();
-        std::string key = *v8::String::Utf8Value(localKey);
-        std::string val = *v8::String::Utf8Value(localVal);
+  for (int i = 0, l = props->Length(); i < l; i++) {
+    v8::Local<v8::Value> localKey = props->Get(i);
+    v8::Local<v8::Value> localVal = obj->Get(context, localKey).ToLocalChecked();
+    std::string key = *v8::String::Utf8Value(localKey);
+    std::string val = *v8::String::Utf8Value(localVal);
 
-        // append the RSS feed body to the list of RSS feeds
-        getInstance().entries << QString::fromStdString(val);
-    }
+    // append the RSS feed body to the list of RSS feeds:
+    getInstance().entries << QString::fromStdString(val);
+  }
 }
 ```
 
 #### node-lib-qt-rss.js
 ```JS
 var FeedParser = require('feedparser');
-var request = require('request');
+var request = require('request'); // for fetching the feed
 
 var emitRequest = function () {
-  var feedparser = new FeedParser([]);  
-  var req = request('http://feeds.bbci.co.uk/news/world/rss.xml');
+  console.log("Refreshing feeds...")
+  var feedparser = new FeedParser([]);
+  var req = request('http://feeds.bbci.co.uk/news/world/rss.xml')
 
   req.on('error', function (error) {
-    // catch all request errors but don't handle them
+    // catch all request errors but don't handle them in this demo
   });
 
   req.on('response', function (res) {
     var stream = this; // `this` is `req`, which is a stream
-  
+
     if (res.statusCode !== 200) {
       this.emit('error', new Error('Bad status code'));
     }
@@ -284,24 +293,23 @@ var emitRequest = function () {
       stream.pipe(feedparser);
     }
   });
- 
+
   feedparser.on('error', function (error) {
-    // catch all parser errors but don't handle them
+    // catch all parser errors but don't handle them in this demo
   });
-  
+
   feedparser.on('readable', function () {
-    var stream = this;
-    var item;
-  
-    var itemString = '';
-    while (item = stream.read()) {
-        itemString = itemString + item['title'] + '\n' + item['description'];
+    var stream = this; // `this` is `feedparser`, which is a stream
+    var item = stream.read();
+
+    if (item) {
+      var itemString = item['title'] + '\n' + item['description'];
+      cppQtGui.addFeedItem( { itemTitle: itemString } );
     }
-    cppQtGui.appendFeed({itemTitle: itemString});
   });
 
   feedparser.on('end', function (){
-    cppQtGui.redrawGUI();
+    cppQtGui.redraw();
   });
 }
 ```
