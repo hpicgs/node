@@ -304,7 +304,7 @@ var emitRequest = function () {
 
     if (item) {
       var itemString = item['title'] + '\n' + item['description'];
-      cppQtGui.addFeedItem( { itemTitle: itemString } );
+      cppQtGui.addFeedItem( { item: itemString } );
     }
   });
 
