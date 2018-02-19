@@ -86,27 +86,28 @@ int main(int argc, char* argv[]) {
 
     engine.load(QUrl(QLatin1String("qrc:/main.qml")));
 
-    // initialize Node.js engine
+    // Initialize Node.js engine
     node::Initialize();
 
-    // expose C++ methods to be used within JavaScript
-    // these methods can be called like this `cppQtGui.appendFeed(...)`
+    // Register C++ methods to be used within JavaScript
+    // The third parameter binds the C++ module to that name,
+    // allowing the functions to be called like this: "cppQtGui.appendFeed(...)"
     node::RegisterModule("cpp-qt-gui", {
                                 {"appendFeed", RssFeed::appendFeed},
                                 {"clearFeed", RssFeed::clearFeed},
                                 {"redrawGUI", RssFeed::redrawGUI},
-                              }, "cppQtGui");
+                            }, "cppQtGui");
 
-    // evaluate the JavaScript file once
+    // Evaluate a JavaScript file once
     node::Run(js_path);
 
-    // load RSS feeds to display them
+    // Load RSS feeds to display them
     RssFeed::refreshFeed();
 
-    // now just run the QT application
+    // Run the Qt application
     app.exec();
 
-    // after we are done, deinitialize the Node.js engine
+    // After we are done, deinitialize the Node.js engine
     node::Deinitialize();
 }
 ```
