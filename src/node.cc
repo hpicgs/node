@@ -4704,7 +4704,6 @@ int _StopEnv() {
 
   int exit_code = EmitExit(_environment);
   RunAtExit(_environment);
-  uv_key_delete(&thread_local_env);
 
   v8_platform.DrainVMTasks(_environment->isolate());
   v8_platform.CancelVMTasks(_environment->isolate());
@@ -4801,7 +4800,7 @@ void _CreateIsolate() {
 
   _isolate->AddMessageListener(OnMessage);
   _isolate->SetAbortOnUncaughtExceptionCallback(ShouldAbortOnUncaughtException);
-  _isolate->SetAutorunMicrotasks(false);
+  _isolate->SetMicrotasksPolicy(v8::MicrotasksPolicy::kExplicit);
   _isolate->SetFatalErrorHandler(OnFatalError);
 
   {
@@ -4835,8 +4834,6 @@ void _CreateInitialEnvironment() {
   context = NewContext(_isolate);
   context_scope = new Context::Scope(context);
   _environment = new node::Environment(isolate_data, context);
-  CHECK_EQ(0, uv_key_create(&thread_local_env));
-  uv_key_set(&thread_local_env, _environment);
 }
 
 void _ConfigureOpenSsl() {
