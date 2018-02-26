@@ -4606,7 +4606,7 @@ void _CreateIsolate() {
   if (_isolate == nullptr) {
     fprintf(stderr, "Could not create isolate.");
     fflush(stderr);
-    return;  // TODO(@luminosuslight): Handle error
+    return;  // TODO(luminosuslight): Handle error
     // return 12;  // Signal internal error.
   }
 
@@ -4637,7 +4637,8 @@ void _CreateInitialEnvironment() {
     _isolate->GetHeapProfiler()->StartTrackingHeapObjects(true);
   }
 
-  // (@justus-hildebrand) in the initial Start functions, two handle scopes were created
+  // (justus-hildebrand) in the initial Start functions, 
+  // two handle scopes were created
   // (one in Start() 2 and one in Start() 3). Currently, we have no idea why.
   // HandleScope handle_scope(isolate);
   context = NewContext(_isolate);
@@ -4675,7 +4676,7 @@ void _StartEnv(int argc,
 
   if (debug_options.inspector_enabled() &&
       !v8_platform.InspectorStarted(_environment)) {
-    return;  // TODO(@justus_hildebrand): Handle error
+    return;  // TODO(justus-hildebrand): Handle error
     // return 12;  // Signal internal error.
   }
 
@@ -4728,7 +4729,7 @@ void Initialize(int argc, const char** argv, const bool allow_repl) {
 
 int Deinitialize() {
   // Empty event queue
-  // TODO(@cmfcmf): Investigate when this is really needed.
+  // TODO(cmfcmf): Investigate when this is needed.
   // Evaluate("process.exit();");
   // while (ProcessEvents()) { }
 
@@ -4742,7 +4743,7 @@ int Deinitialize() {
 
   deinitialize::_DeinitV8();
 
-  // TODO(@Hannes01071995): Do we need to tear down OpenSsl?
+  // TODO(Hannes01071995): Do we need to tear down OpenSsl?
 
   deinitialize::_DeleteCmdArgs();
 
@@ -4750,7 +4751,7 @@ int Deinitialize() {
 }
 
 v8::MaybeLocal<v8::Value> Run(const std::string& path) {
-  // TODO(@cmfcmf) Read entire file into string.
+  // TODO(cmfcmf) Read entire file into string.
   // There is most certainly a better way
   // https://stackoverflow.com/a/2602258/2560557
   std::ifstream t(path);
@@ -4768,7 +4769,7 @@ v8::MaybeLocal<v8::Value> Evaluate(const std::string& js_code) {
   // we will handle exceptions ourself.
   try_catch.SetVerbose(false);
 
-  // TODO(@justus_hildebrand): set reasonable ScriptOrigin. This is used for debugging
+  // TODO(justus-hildebrand): set reasonable ScriptOrigin. This is used for debugging
   // ScriptOrigin origin(filename);
   MaybeLocal<v8::Script> script = v8::Script::Compile(
         _environment->context(),
@@ -4786,9 +4787,9 @@ v8::MaybeLocal<v8::Value> Evaluate(const std::string& js_code) {
 void RunEventLoop(const std::function<void()>& callback,
                   UvLoopBehavior behavior) {
   if (_event_loop_running) {
-    return;  // TODO(@luminosuslight): return error
+    return;  // TODO(luminosuslight): return error
   }
-  // TODO(@justus_hildebrand): this was missing after building RunEventLoop from the Start()
+  // TODO(justus-hildebrand): this was missing after building RunEventLoop from the Start()
   // functions. We are not sure why the sealed scope is necessary.
   // Please investigate.
   // SealHandleScope seal(isolate);
