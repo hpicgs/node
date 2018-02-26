@@ -4637,7 +4637,7 @@ void _CreateInitialEnvironment() {
     _isolate->GetHeapProfiler()->StartTrackingHeapObjects(true);
   }
 
-  // (justus-hildebrand) in the initial Start functions, 
+  // TODO(justus-hildebrand): in the initial Start functions, 
   // two handle scopes were created
   // (one in Start() 2 and one in Start() 3). Currently, we have no idea why.
   // HandleScope handle_scope(isolate);
