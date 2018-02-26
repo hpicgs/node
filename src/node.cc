@@ -4750,7 +4750,8 @@ int Deinitialize() {
 }
 
 v8::MaybeLocal<v8::Value> Run(const std::string& path) {
-  // TODO(cf) Read entire file into string. There is most certainly a better way ;)
+  // TODO(cf) Read entire file into string.
+  // There is most certainly a better way ;)
   // https://stackoverflow.com/a/2602258/2560557
   std::ifstream t(path);
   std::stringstream buffer;
