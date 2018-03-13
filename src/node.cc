@@ -4408,17 +4408,15 @@ class CmdArgs {
     std::vector<std::size_t> offsets;
     argument_data_.reserve(total_size);
     offsets.push_back(argument_data_.size());
-    argument_data_ += program_name;
-    argument_data_ += static_cast<char>(0x0);
+    argument_data_ += program_name + '\0';
     for (const auto& argument : arguments) {
       offsets.push_back(argument_data_.size());
-      argument_data_ += argument;
-      argument_data_ += static_cast<char>(0x0);
+      argument_data_ += argument + '\0';
     }
 
     argument_pointers_.resize(offsets.size());
     for (std::size_t i=0; i < argument_pointers_.size(); ++i) {
-      argument_pointers_[i] = argument_data_.data() + offsets[i];
+      argument_pointers_[i] = &argument_data_[0] + offsets[i];
     }
     argc = argument_pointers_.size();
     argv = argument_pointers_.data();
@@ -4434,7 +4432,7 @@ class CmdArgs {
    * @brief argv is an array containing pointers to the arguments (and the
    * program name), it should not be modified
    */
-  const char** argv;
+  char** argv;
 
  private:
   /**
@@ -4446,7 +4444,7 @@ class CmdArgs {
    * @brief argument_pointers contains pointers to the beginnings of the
    * strings in argument_data
    */
-  std::vector<const char*> argument_pointers_;
+  std::vector<char*> argument_pointers_;
 };
 
 class HandleScopeHeapWrapper {
@@ -4703,26 +4701,26 @@ int _StartEnv(int argc,
 }  // namespace initialize
 
 int Initialize(const std::string& program_name,
-                const std::vector<std::string>& node_args,
-                const bool evaluate_stdin) {
+               const std::vector<std::string>& node_args,
+               const bool evaluate_stdin) {
   cmd_args = new CmdArgs(program_name, node_args);
   return Initialize(cmd_args->argc, cmd_args->argv, evaluate_stdin);
 }
 
-int Initialize(int argc, const char** argv, const bool evaluate_stdin) {
+int Initialize(int argc, char** argv, const bool evaluate_stdin) {
   atexit([] () { uv_tty_reset_mode(); });
   PlatformInit();
   node::performance::performance_node_start = PERFORMANCE_NOW();
 
   // Hack around with the argv pointer. Used for process.title = "blah --args".
   // argv won't be modified
-  uv_setup_args(argc, const_cast<char**>(argv));
+  argv = uv_setup_args(argc, argv);
 
-  // This needs to run *before* V8::Initialize().
-  // Init() puts the v8 specific cmd args in exec_argc and exec_argv.
+  // This needs to run *before* V8::Initialize().  The const_cast is not
+  // optional, in case you're wondering.
   int exec_argc = 0;
   const char** exec_argv = nullptr;
-  Init(&argc, argv, &exec_argc, &exec_argv);
+  Init(&argc, const_cast<const char**>(argv), &exec_argc, &exec_argv);
 
   initialize::_ConfigureOpenSsl();
   initialize::_InitV8();
@@ -4965,7 +4963,7 @@ bool ProcessEvents(UvLoopBehavior behavior) {
 }
 
 int Start(int argc, char** argv) {
-  auto exit_code = Initialize(argc, const_cast<const char**>(argv), true);
+  auto exit_code = Initialize(argc, argv, true);
   if (exit_code != 0) {
     return exit_code;
   }

@@ -104,7 +104,7 @@ NODE_EXTERN int Initialize(const std::string& program_name = "node_lib",
  * @return Potential errors are indicated by a return value not equal to 0.
  */
 NODE_EXTERN int Initialize(int argc,
-                           const char** argv,
+                           char** argv,
                            const bool evaluate_stdin = false);
 
 
